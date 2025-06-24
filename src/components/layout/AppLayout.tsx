@@ -2,15 +2,17 @@ import { AppShell, Burger, Group, Button, Menu, Avatar, Text, ActionIcon, Contai
 import { useDisclosure } from '@mantine/hooks';
 import { Outlet, useNavigate, Link } from 'react-router-dom';
 import { IconHome, IconBuilding, IconCalendar, IconUser, IconPlus, IconLogout, IconSearch, IconMapPin } from '@tabler/icons-react';
-import { useState } from 'react';
 import { Logo } from './Logo';
 import { MobileNav } from './MobileNav';
+import { VerificationBanner } from '../auth/VerificationBanner';
+import { useAuth } from '../../contexts/AuthContext';
+import { notifications } from '@mantine/notifications';
 
 export function AppLayout() {
   const [opened, { toggle }] = useDisclosure();
   const navigate = useNavigate();
   const theme = useMantineTheme();
-  const [user] = useState({ name: 'Guest User', role: 'guest' }); // Временный пользователь
+  const { user, logout } = useAuth();
 
   return (
     <AppShell
@@ -37,7 +39,7 @@ export function AppLayout() {
                 >
                   Найти локацию
                 </Button>
-                {user.role === 'host' && (
+                {user && (user.role === 'host' || user.role === 'both') && (
                   <Button
                     variant="light"
                     leftSection={<IconPlus size={18} />}
@@ -88,6 +90,23 @@ export function AppLayout() {
                     <Menu.Item
                       color="red"
                       leftSection={<IconLogout size={14} />}
+                      onClick={async () => {
+                        try {
+                          await logout();
+                          notifications.show({
+                            title: 'Выход выполнен',
+                            message: 'До встречи!',
+                            color: 'green',
+                          });
+                          navigate('/');
+                        } catch (error) {
+                          notifications.show({
+                            title: 'Ошибка',
+                            message: 'Не удалось выйти из системы',
+                            color: 'red',
+                          });
+                        }
+                      }}
                     >
                       Выйти
                     </Menu.Item>
@@ -113,6 +132,7 @@ export function AppLayout() {
       </AppShell.Navbar>
 
       <AppShell.Main>
+        <VerificationBanner />
         <Container size="xl">
           <Outlet />
         </Container>

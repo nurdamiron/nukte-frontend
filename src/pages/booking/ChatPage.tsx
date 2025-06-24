@@ -221,7 +221,13 @@ export function ChatPage() {
 
             {/* Message Input */}
             <Group p="md" gap="sm" style={{ borderTop: '1px solid var(--mantine-color-gray-2)' }}>
-              <FileButton accept="image/*,application/pdf">
+              <FileButton 
+                accept="image/*,application/pdf"
+                onChange={(file) => {
+                  // Handle file upload
+                  console.log('File selected:', file);
+                }}
+              >
                 {(props) => (
                   <ActionIcon {...props} variant="light" size="lg" radius="md">
                     <IconPaperclip size={20} />

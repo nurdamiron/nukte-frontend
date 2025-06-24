@@ -1,4 +1,4 @@
-import { Container, Title, Paper, Stepper, Button, Group, TextInput, Textarea, NumberInput, Select, MultiSelect, Grid, Text, FileButton, Image, Stack, Badge, Checkbox, Card } from '@mantine/core';
+import { Container, Title, Paper, Stepper, Button, Group, TextInput, Textarea, NumberInput, Select, MultiSelect, Grid, Text, FileButton, Image, Stack, Badge, Checkbox, Card, ActionIcon } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useState } from 'react';
 import { IconUpload, IconPhoto, IconX, IconPlus, IconMapPin, IconCurrencyDollar, IconRuler, IconUsers, IconCar, IconWifi, IconBath, IconToolsKitchen2 } from '@tabler/icons-react';
@@ -41,9 +41,9 @@ export function CreateListingPage() {
       maxGuests: 0,
       pricePerHour: 0,
       pricePerDay: 0,
-      amenities: [],
+      amenities: [] as string[],
       rules: '',
-      availableDates: [],
+      availableDates: [] as string[],
     },
     validate: (values) => {
       if (active === 0) {
@@ -89,7 +89,7 @@ export function CreateListingPage() {
       <Title order={1} mb="xl">Добавить новую локацию</Title>
 
       <Paper shadow="sm" p="xl" radius="md">
-        <Stepper active={active} onStepClick={setActive} breakpoint="sm">
+        <Stepper active={active} onStepClick={setActive}>
           <Stepper.Step label="Основная информация" description="Название и описание">
             <Stack gap="md" mt="xl">
               <TextInput

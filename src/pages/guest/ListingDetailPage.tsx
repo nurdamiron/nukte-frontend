@@ -1,93 +1,167 @@
-import { Container, Grid, Image, Text, Title, Badge, Group, Stack, Button, Card, Avatar, Tabs, Paper, List, ThemeIcon, ActionIcon, Modal, NumberInput, Select, Textarea, Divider } from '@mantine/core';
+import { Container, Grid, Image, Text, Title, Badge, Group, Stack, Button, Card, Avatar, Tabs, Paper, List, ThemeIcon, ActionIcon, Modal, NumberInput, Select, Textarea, Divider, Loader, Center, Alert, Skeleton, Input } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { DatePicker } from '@mantine/dates';
 import { Carousel } from '@mantine/carousel';
-import { IconMapPin, IconStar, IconRuler, IconUsers, IconCar, IconWifi, IconBath, IconToolsKitchen2, IconCheck, IconShare, IconHeart, IconMessage, IconCalendar, IconClock, IconShieldCheck, IconFileDescription } from '@tabler/icons-react';
+import { IconMapPin, IconStar, IconRuler, IconUsers, IconCar, IconWifi, IconBath, IconToolsKitchen2, IconCheck, IconShare, IconHeart, IconMessage, IconCalendar, IconClock, IconShieldCheck, IconFileDescription, IconAlertCircle, IconParking, IconBolt, IconAirConditioning, IconElevator } from '@tabler/icons-react';
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { notifications } from '@mantine/notifications';
+import { listingsService } from '../../services/listings.service';
+import { bookingsService } from '../../services/bookings.service';
+import { useAuth } from '../../contexts/AuthContext';
+import type { Listing, BookingCreateData, Review } from '../../types/api.types';
 
-const mockListing = {
-  id: 1,
-  title: 'Современная студия в центре города',
-  images: [
-    'https://images.unsplash.com/photo-1565953522043-baea26b83b7e?w=800',
-    'https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?w=800',
-    'https://images.unsplash.com/photo-1416331108676-a22ccb276e35?w=800',
-    'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800',
-  ],
-  price: '50 000 ₸/день',
-  pricePerHour: 10000,
-  pricePerDay: 50000,
-  rating: 4.8,
-  reviews: 12,
-  location: 'Алматы, Медеуский район',
-  address: 'ул. Абая 150, 3 этаж',
-  area: 120,
-  maxGuests: 30,
-  description: `Современная студия в самом сердце Алматы идеально подходит для фото и видеосъёмок любой сложности. 
-  
-  Пространство оборудовано профессиональным освещением, имеет высокие потолки (3.5м) и панорамные окна с видом на город. В студии есть несколько зон с разным интерьером: минималистичная белая зона, зона с кирпичной стеной, и лаунж-зона с мягкой мебелью.
-  
-  Мы предоставляем базовое осветительное оборудование, отражатели и штативы. Также доступна гримёрная комната с зеркалами и хорошим освещением.`,
-  amenities: [
-    { icon: IconCar, label: 'Бесплатная парковка' },
-    { icon: IconWifi, label: 'Высокоскоростной Wi-Fi' },
-    { icon: IconBath, label: 'Санузел и душ' },
-    { icon: IconToolsKitchen2, label: 'Кухня' },
-  ],
-  rules: [
-    'Курение запрещено внутри помещения',
-    'Животные только по согласованию',
-    'Уборка после съёмки обязательна',
-    'Максимальный уровень шума до 22:00',
-  ],
-  host: {
-    id: 1,
-    name: 'Айдар Сабиров',
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100',
-    verified: true,
-    responseTime: '~1 час',
-    responseRate: '98%',
-    joinedDate: 'Январь 2023',
-    listings: 3,
-  },
-  unavailableDates: ['2024-01-15', '2024-01-16', '2024-01-20'],
+// Amenity icon mapping
+const amenityIcons: Record<string, any> = {
+  parking: IconParking,
+  wifi: IconWifi,
+  bathroom: IconBath,
+  kitchen: IconToolsKitchen2,
+  electricity: IconBolt,
+  heating: IconCar,
+  air_conditioning: IconAirConditioning,
+  elevator: IconElevator,
 };
 
-const reviewsData = [
-  {
-    id: 1,
-    author: 'Мария К.',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100',
-    rating: 5,
-    date: '2 недели назад',
-    text: 'Отличная студия! Много естественного света, удобное расположение. Хозяин очень отзывчивый.',
-  },
-  {
-    id: 2,
-    author: 'Данияр М.',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100',
-    rating: 4,
-    date: '1 месяц назад',
-    text: 'Хорошее пространство для съёмок. Единственный минус - парковка иногда занята.',
-  },
-];
+// Amenity label mapping
+const amenityLabels: Record<string, string> = {
+  parking: 'Парковка',
+  wifi: 'Wi-Fi',
+  bathroom: 'Санузел',
+  kitchen: 'Кухня',
+  electricity: 'Электричество',
+  heating: 'Отопление',
+  air_conditioning: 'Кондиционер',
+  elevator: 'Лифт',
+};
 
 export function ListingDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [opened, { open, close }] = useDisclosure(false);
   const [bookingData, setBookingData] = useState({
     date: null as Date | null,
     startTime: '',
-    duration: 1,
-    guests: 1,
+    endTime: '',
+    guestsCount: 1,
     message: '',
   });
 
-  const calculateTotal = () => {
-    return bookingData.duration * mockListing.pricePerHour;
+  // Fetch listing data
+  const { data: listing, isLoading, isError, error } = useQuery({
+    queryKey: ['listing', id],
+    queryFn: () => listingsService.getListingById(Number(id)),
+    enabled: !!id,
+  });
+
+  // Create booking mutation
+  const createBookingMutation = useMutation({
+    mutationFn: (data: BookingCreateData) => bookingsService.createBooking(data),
+    onSuccess: (booking) => {
+      notifications.show({
+        title: 'Запрос отправлен',
+        message: 'Ваш запрос на бронирование успешно отправлен хосту',
+        color: 'green',
+      });
+      close();
+      navigate(`/bookings/${booking.id}`);
+    },
+    onError: (error: any) => {
+      notifications.show({
+        title: 'Ошибка',
+        message: error.message || 'Не удалось создать бронирование',
+        color: 'red',
+      });
+    },
+  });
+
+  const calculateDuration = () => {
+    if (!bookingData.startTime || !bookingData.endTime) return 0;
+    const start = parseInt(bookingData.startTime.split(':')[0]);
+    const end = parseInt(bookingData.endTime.split(':')[0]);
+    return end - start;
   };
+
+  const calculateTotal = () => {
+    if (!listing) return 0;
+    const duration = calculateDuration();
+    return duration * listing.pricePerHour;
+  };
+
+  const handleBooking = () => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    if (!listing || !bookingData.date || !bookingData.startTime || !bookingData.endTime) {
+      notifications.show({
+        title: 'Ошибка',
+        message: 'Заполните все обязательные поля',
+        color: 'red',
+      });
+      return;
+    }
+
+    const dateStr = bookingData.date.toISOString().split('T')[0];
+    
+    createBookingMutation.mutate({
+      listingId: listing.id,
+      date: dateStr,
+      startTime: bookingData.startTime,
+      endTime: bookingData.endTime,
+      guestsCount: bookingData.guestsCount,
+      guestMessage: bookingData.message,
+    });
+  };
+
+  // Get primary image URL
+  const getPrimaryImage = (listing: Listing): string => {
+    const primaryImage = listing.images?.find(img => img.isPrimary);
+    return primaryImage?.url || listing.images?.[0]?.url || 'https://placehold.co/400x300';
+  };
+
+  // Format price display
+  const formatPrice = (listing: Listing): string => {
+    if (listing.pricePerDay) {
+      return `${listing.pricePerDay.toLocaleString('ru-KZ')} ₸/день`;
+    }
+    return `${listing.pricePerHour.toLocaleString('ru-KZ')} ₸/час`;
+  };
+
+  if (isLoading) {
+    return (
+      <Container size="xl" my="xl">
+        <Grid gutter="xl">
+          <Grid.Col span={{ base: 12, md: 8 }}>
+            <Skeleton height={400} mb="xl" />
+            <Skeleton height={40} width="70%" mb="md" />
+            <Skeleton height={20} width="40%" mb="xl" />
+            <Skeleton height={200} />
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, md: 4 }}>
+            <Skeleton height={300} />
+          </Grid.Col>
+        </Grid>
+      </Container>
+    );
+  }
+
+  if (isError || !listing) {
+    return (
+      <Container size="xl" my="xl">
+        <Alert
+          icon={<IconAlertCircle size={16} />}
+          title="Ошибка загрузки"
+          color="red"
+        >
+          {error?.message || 'Не удалось загрузить информацию о локации'}
+        </Alert>
+      </Container>
+    );
+  }
 
   return (
     <Container size="xl" my="xl">
@@ -99,25 +173,28 @@ export function ListingDetailPage() {
             height={400}
             slideSize="100%"
             slideGap="md"
-            loop
             mb="xl"
           >
-            {mockListing.images.map((image, index) => (
-              <Carousel.Slide key={index}>
-                <Image src={image} height={400} radius="md" />
+            {listing.images?.map((image, index) => (
+              <Carousel.Slide key={image.id || index}>
+                <Image src={image.url} height={400} radius="md" alt={listing.title} />
               </Carousel.Slide>
-            ))}
+            )) || (
+              <Carousel.Slide>
+                <Image src={getPrimaryImage(listing)} height={400} radius="md" alt={listing.title} />
+              </Carousel.Slide>
+            )}
           </Carousel>
 
           {/* Title and Location */}
           <Group justify="space-between" align="flex-start" mb="md">
             <div>
               <Title order={1} mb="xs">
-                {mockListing.title}
+                {listing.title}
               </Title>
               <Group gap="xs">
                 <IconMapPin size={18} />
-                <Text>{mockListing.location}</Text>
+                <Text>{listing.city}{listing.address ? `, ${listing.address}` : ''}</Text>
               </Group>
             </div>
             <Group>
@@ -134,16 +211,16 @@ export function ListingDetailPage() {
           <Group gap="xl" mb="xl">
             <Group gap="xs">
               <IconRuler size={20} />
-              <Text>{mockListing.area} м²</Text>
+              <Text>{listing.area} м²</Text>
             </Group>
             <Group gap="xs">
               <IconUsers size={20} />
-              <Text>До {mockListing.maxGuests} человек</Text>
+              <Text>До {listing.maxGuests} человек</Text>
             </Group>
             <Group gap="xs">
               <IconStar size={20} fill="currentColor" />
-              <Text fw={500}>{mockListing.rating}</Text>
-              <Text c="dimmed">({mockListing.reviews} отзывов)</Text>
+              <Text fw={500}>{listing.rating || 0}</Text>
+              <Text c="dimmed">({listing.reviewsCount || 0} отзывов)</Text>
             </Group>
           </Group>
 
@@ -153,27 +230,31 @@ export function ListingDetailPage() {
               <Tabs.Tab value="description">Описание</Tabs.Tab>
               <Tabs.Tab value="amenities">Удобства</Tabs.Tab>
               <Tabs.Tab value="rules">Правила</Tabs.Tab>
-              <Tabs.Tab value="reviews">Отзывы ({mockListing.reviews})</Tabs.Tab>
+              <Tabs.Tab value="reviews">Отзывы ({listing.reviewsCount || 0})</Tabs.Tab>
             </Tabs.List>
 
             <Tabs.Panel value="description" pt="xl">
               <Text style={{ whiteSpace: 'pre-line' }}>
-                {mockListing.description}
+                {listing.description}
               </Text>
             </Tabs.Panel>
 
             <Tabs.Panel value="amenities" pt="xl">
               <Grid>
-                {mockListing.amenities.map((amenity, index) => (
-                  <Grid.Col key={index} span={6}>
-                    <Group gap="sm">
-                      <ThemeIcon variant="light" size="lg" radius="md">
-                        <amenity.icon size={20} />
-                      </ThemeIcon>
-                      <Text>{amenity.label}</Text>
-                    </Group>
-                  </Grid.Col>
-                ))}
+                {listing.amenities?.map((amenity, index) => {
+                  const Icon = amenityIcons[amenity] || IconCheck;
+                  const label = amenityLabels[amenity] || amenity;
+                  return (
+                    <Grid.Col key={index} span={6}>
+                      <Group gap="sm">
+                        <ThemeIcon variant="light" size="lg" radius="md">
+                          <Icon size={20} />
+                        </ThemeIcon>
+                        <Text>{label}</Text>
+                      </Group>
+                    </Grid.Col>
+                  );
+                })}
               </Grid>
             </Tabs.Panel>
 
@@ -186,21 +267,23 @@ export function ListingDetailPage() {
                   </ThemeIcon>
                 }
               >
-                {mockListing.rules.map((rule, index) => (
+                {listing.rules?.split('\n').map((rule, index) => (
                   <List.Item key={index}>{rule}</List.Item>
-                ))}
+                )) || <Text c="dimmed">Правила не указаны</Text>}
               </List>
             </Tabs.Panel>
 
             <Tabs.Panel value="reviews" pt="xl">
               <Stack gap="lg">
-                {reviewsData.map((review) => (
+                {listing.reviews?.length ? listing.reviews.map((review: Review) => (
                   <Paper key={review.id} p="md" withBorder radius="md">
                     <Group justify="space-between" mb="sm">
                       <Group>
-                        <Avatar src={review.avatar} radius="xl" />
+                        <Avatar src={review.reviewer?.avatar} radius="xl">
+                          {review.reviewer?.name?.charAt(0).toUpperCase()}
+                        </Avatar>
                         <div>
-                          <Text fw={500}>{review.author}</Text>
+                          <Text fw={500}>{review.reviewer?.name || 'Гость'}</Text>
                           <Group gap="xs">
                             {[...Array(5)].map((_, i) => (
                               <IconStar
@@ -213,12 +296,12 @@ export function ListingDetailPage() {
                         </div>
                       </Group>
                       <Text size="sm" c="dimmed">
-                        {review.date}
+                        {new Date(review.createdAt).toLocaleDateString('ru-KZ')}
                       </Text>
                     </Group>
-                    <Text>{review.text}</Text>
+                    <Text>{review.comment}</Text>
                   </Paper>
-                ))}
+                )) : <Text c="dimmed" ta="center">Пока нет отзывов</Text>}
               </Stack>
             </Tabs.Panel>
           </Tabs>
@@ -230,15 +313,19 @@ export function ListingDetailPage() {
             <Stack gap="md">
               <Group justify="space-between">
                 <Text size="xl" fw={700}>
-                  {mockListing.pricePerHour.toLocaleString()} ₸
+                  {listing.pricePerHour.toLocaleString('ru-KZ')} ₸
                 </Text>
                 <Text c="dimmed">за час</Text>
               </Group>
 
               <Divider />
 
-              <Button size="lg" fullWidth onClick={open}>
-                Забронировать
+              <Button 
+                size="lg" 
+                fullWidth 
+                onClick={user ? open : () => navigate('/login')}
+              >
+                {user ? 'Забронировать' : 'Войти для бронирования'}
               </Button>
 
               <Text size="xs" c="dimmed" ta="center">
@@ -250,18 +337,20 @@ export function ListingDetailPage() {
               {/* Host Info */}
               <Group justify="space-between">
                 <Group>
-                  <Avatar src={mockListing.host.avatar} radius="xl" size="md" />
+                  <Avatar src={listing.host?.avatar} radius="xl" size="md">
+                    {listing.host?.name?.charAt(0).toUpperCase()}
+                  </Avatar>
                   <div>
                     <Group gap={4}>
-                      <Text fw={500}>{mockListing.host.name}</Text>
-                      {mockListing.host.verified && (
+                      <Text fw={500}>{listing.host?.name || 'Хост'}</Text>
+                      {listing.host?.verified && (
                         <ThemeIcon size="sm" radius="xl" color="blue" variant="light">
                           <IconShieldCheck size={14} />
                         </ThemeIcon>
                       )}
                     </Group>
                     <Text size="xs" c="dimmed">
-                      Хост с {mockListing.host.joinedDate}
+                      Хост с {listing.host?.createdAt ? new Date(listing.host.createdAt).toLocaleDateString('ru-KZ', { year: 'numeric', month: 'long' }) : 'недавно'}
                     </Text>
                   </div>
                 </Group>
@@ -273,11 +362,11 @@ export function ListingDetailPage() {
               <Grid gutter="xs">
                 <Grid.Col span={6}>
                   <Text size="xs" c="dimmed">Время ответа</Text>
-                  <Text size="sm" fw={500}>{mockListing.host.responseTime}</Text>
+                  <Text size="sm" fw={500}>~1 час</Text>
                 </Grid.Col>
                 <Grid.Col span={6}>
                   <Text size="xs" c="dimmed">Частота ответов</Text>
-                  <Text size="sm" fw={500}>{mockListing.host.responseRate}</Text>
+                  <Text size="sm" fw={500}>98%</Text>
                 </Grid.Col>
               </Grid>
             </Stack>
@@ -315,13 +404,13 @@ export function ListingDetailPage() {
         size="md"
       >
         <Stack gap="md">
-          <DatePicker
-            label="Дата съёмки"
-            placeholder="Выберите дату"
-            value={bookingData.date}
-            onChange={(value) => setBookingData({ ...bookingData, date: value })}
-            excludeDate={(date) => mockListing.unavailableDates.includes(date.toISOString().split('T')[0])}
-          />
+          <Input.Wrapper label="Дата" required>
+            <DatePicker
+              value={bookingData.date}
+              onChange={(value) => setBookingData({ ...bookingData, date: value as Date | null })}
+              minDate={new Date()}
+            />
+          </Input.Wrapper>
 
           <Grid>
             <Grid.Col span={6}>
@@ -335,15 +424,22 @@ export function ListingDetailPage() {
                 ]}
                 value={bookingData.startTime}
                 onChange={(value) => setBookingData({ ...bookingData, startTime: value || '' })}
+                required
               />
             </Grid.Col>
             <Grid.Col span={6}>
-              <NumberInput
-                label="Длительность (часов)"
-                min={1}
-                max={12}
-                value={bookingData.duration}
-                onChange={(value) => setBookingData({ ...bookingData, duration: Number(value) })}
+              <Select
+                label="Время окончания"
+                placeholder="Выберите время"
+                data={[
+                  '09:00', '10:00', '11:00', '12:00', '13:00',
+                  '14:00', '15:00', '16:00', '17:00', '18:00',
+                  '19:00', '20:00', '21:00', '22:00',
+                ]}
+                value={bookingData.endTime}
+                onChange={(value) => setBookingData({ ...bookingData, endTime: value || '' })}
+                required
+                disabled={!bookingData.startTime}
               />
             </Grid.Col>
           </Grid>
@@ -351,9 +447,10 @@ export function ListingDetailPage() {
           <NumberInput
             label="Количество человек"
             min={1}
-            max={mockListing.maxGuests}
-            value={bookingData.guests}
-            onChange={(value) => setBookingData({ ...bookingData, guests: Number(value) })}
+            max={listing.maxGuests}
+            value={bookingData.guestsCount}
+            onChange={(value) => setBookingData({ ...bookingData, guestsCount: Number(value) })}
+            required
           />
 
           <Textarea
@@ -368,26 +465,29 @@ export function ListingDetailPage() {
 
           <Stack gap="xs">
             <Group justify="space-between">
-              <Text>{bookingData.duration} час × {mockListing.pricePerHour.toLocaleString()} ₸</Text>
-              <Text>{(bookingData.duration * mockListing.pricePerHour).toLocaleString()} ₸</Text>
+              <Text>{calculateDuration()} час × {listing.pricePerHour.toLocaleString('ru-KZ')} ₸</Text>
+              <Text>{calculateTotal().toLocaleString('ru-KZ')} ₸</Text>
             </Group>
             <Group justify="space-between">
               <Text>Сервисный сбор</Text>
-              <Text>{(calculateTotal() * 0.1).toLocaleString()} ₸</Text>
+              <Text>{(calculateTotal() * 0.1).toLocaleString('ru-KZ')} ₸</Text>
             </Group>
             <Divider />
             <Group justify="space-between">
               <Text fw={600}>Итого</Text>
               <Text fw={600} size="lg">
-                {(calculateTotal() * 1.1).toLocaleString()} ₸
+                {(calculateTotal() * 1.1).toLocaleString('ru-KZ')} ₸
               </Text>
             </Group>
           </Stack>
 
-          <Button fullWidth size="lg" onClick={() => {
-            close();
-            navigate('/bookings/new');
-          }}>
+          <Button 
+            fullWidth 
+            size="lg" 
+            onClick={handleBooking}
+            loading={createBookingMutation.isPending}
+            disabled={!bookingData.date || !bookingData.startTime || !bookingData.endTime}
+          >
             Отправить запрос на бронирование
           </Button>
         </Stack>

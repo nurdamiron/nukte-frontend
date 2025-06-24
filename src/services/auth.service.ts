@@ -1,74 +1,61 @@
-import api from './api';
+import BaseService from './base.service';
+import { API_ENDPOINTS } from '../config/api.config';
+import { setAuthToken, removeAuthToken } from '../config/axios.config';
+import {
+  LoginRequest,
+  RegisterRequest,
+  AuthResponse,
+  User,
+} from '../types/api.types';
 
-export interface LoginData {
-  email: string;
-  password: string;
-}
 
-export interface RegisterData {
-  name: string;
-  email: string;
-  password: string;
-  phone?: string;
-  role: 'guest' | 'host' | 'both';
-}
-
-export interface User {
-  id: number;
-  name: string;
-  email: string;
-  role: string;
-  avatar?: string;
-  verified: boolean;
-  phone?: string;
-  bio?: string;
-  location?: string;
-}
-
-export interface AuthResponse {
-  user: User;
-  token: string;
-}
-
-class AuthService {
-  async login(data: LoginData): Promise<AuthResponse> {
-    const response = await api.post('/auth/login', data);
-    const authData = response.data.data;
+class AuthService extends BaseService {
+  async login(data: LoginRequest): Promise<AuthResponse> {
+    const response = await this.post<AuthResponse>(API_ENDPOINTS.AUTH.LOGIN, data);
     
-    localStorage.setItem('token', authData.token);
-    localStorage.setItem('user', JSON.stringify(authData.user));
+    // Save tokens
+    localStorage.setItem('accessToken', response.accessToken);
+    localStorage.setItem('refreshToken', response.refreshToken);
+    localStorage.setItem('user', JSON.stringify(response.user));
+    setAuthToken(response.accessToken);
     
-    return authData;
+    return response;
   }
 
-  async register(data: RegisterData): Promise<AuthResponse> {
-    const response = await api.post('/auth/register', data);
-    const authData = response.data.data;
+  async register(data: RegisterRequest): Promise<AuthResponse> {
+    const response = await this.post<AuthResponse>(API_ENDPOINTS.AUTH.REGISTER, data);
     
-    localStorage.setItem('token', authData.token);
-    localStorage.setItem('user', JSON.stringify(authData.user));
+    // Save tokens
+    localStorage.setItem('accessToken', response.accessToken);
+    localStorage.setItem('refreshToken', response.refreshToken);
+    localStorage.setItem('user', JSON.stringify(response.user));
+    setAuthToken(response.accessToken);
     
-    return authData;
+    return response;
   }
 
   async getMe(): Promise<User> {
-    const response = await api.get('/auth/me');
-    return response.data.data.user;
-  }
-
-  async updateProfile(data: Partial<User>): Promise<User> {
-    const response = await api.put('/auth/profile', data);
-    const user = response.data.data.user;
-    
+    const user = await this.get<User>(API_ENDPOINTS.AUTH.ME);
     localStorage.setItem('user', JSON.stringify(user));
-    
     return user;
   }
 
-  logout() {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    window.location.href = '/login';
+  async updateProfile(data: Partial<User>): Promise<User> {
+    const user = await this.put<User>(API_ENDPOINTS.AUTH.UPDATE_PROFILE, data);
+    localStorage.setItem('user', JSON.stringify(user));
+    return user;
+  }
+
+  async logout(): Promise<void> {
+    try {
+      await this.post(API_ENDPOINTS.AUTH.LOGOUT);
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      removeAuthToken();
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+    }
   }
 
   getCurrentUser(): User | null {
@@ -77,12 +64,31 @@ class AuthService {
   }
 
   getToken(): string | null {
-    return localStorage.getItem('token');
+    return localStorage.getItem('accessToken');
   }
 
   isAuthenticated(): boolean {
     return !!this.getToken();
   }
+
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    return await this.post(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, { email });
+  }
+
+  async resetPassword(token: string, password: string): Promise<{ message: string }> {
+    return await this.post(API_ENDPOINTS.AUTH.RESET_PASSWORD, { token, password });
+  }
+
+  async sendVerificationCode(): Promise<{ message: string }> {
+    return await this.post(API_ENDPOINTS.AUTH.SEND_VERIFICATION);
+  }
+
+  async verifyEmail(code: string): Promise<{ user: User; message: string }> {
+    const response = await this.post<{ user: User; message: string }>(API_ENDPOINTS.AUTH.VERIFY_EMAIL, { code });
+    localStorage.setItem('user', JSON.stringify(response.user));
+    return response;
+  }
 }
 
-export default new AuthService();
+export const authService = new AuthService();
+export default authService;

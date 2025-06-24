@@ -99,8 +99,8 @@ export function MyListingsPage() {
               (activeTab === 'paused' && listing.status === 'paused')
             )
             .map((listing) => (
-              <Grid.Col key={listing.id} span={{ base: 12, sm: 6, md: 4 }}>
-                <Card shadow="sm" radius="md" withBorder>
+              <Grid.Col key={listing.id} span={{ base: 12, xs: 6, sm: 6, md: 4, lg: 3 }}>
+                <Card shadow="sm" radius="md" withBorder h="100%" style={{ display: 'flex', flexDirection: 'column' }}>
                   <Card.Section pos="relative">
                     <Image
                       src={listing.image}
@@ -148,8 +148,8 @@ export function MyListingsPage() {
                     </Menu>
                   </Card.Section>
 
-                  <Stack gap="sm" mt="md">
-                    <Text fw={600} size="lg" lineClamp={1}>
+                  <Stack gap="sm" mt="md" style={{ flex: 1 }}>
+                    <Text fw={600} size="lg" lineClamp={2} style={{ minHeight: "3.2em" }}>
                       {listing.title}
                     </Text>
 
@@ -187,7 +187,7 @@ export function MyListingsPage() {
                       <Progress value={listing.revenue / 10000} size="sm" />
                     </div>
 
-                    <Group gap="xs">
+                    <Group gap="xs" style={{ marginTop: 'auto' }}>
                       <Button
                         size="sm"
                         variant="light"
@@ -196,13 +196,13 @@ export function MyListingsPage() {
                       >
                         Управление
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="subtle"
-                        leftSection={<IconTrendingUp size={16} />}
+                      <ActionIcon
+                        size="lg"
+                        variant="light"
+                        title="Статистика"
                       >
-                        Статистика
-                      </Button>
+                        <IconTrendingUp size={16} />
+                      </ActionIcon>
                     </Group>
                   </Stack>
                 </Card>

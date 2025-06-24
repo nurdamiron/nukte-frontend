@@ -1,96 +1,23 @@
-import { Container, Title, Tabs, Grid, Card, Image, Text, Badge, Group, Stack, Button, Timeline, Paper, Avatar, ActionIcon } from '@mantine/core';
-import { IconCalendar, IconClock, IconMapPin, IconMessage, IconFileDescription, IconCheck, IconX, IconClock2, IconStar } from '@tabler/icons-react';
-import { useState } from 'react';
+import { Container, Title, Tabs, Grid, Card, Image, Text, Badge, Group, Stack, Button, Timeline, Paper, Avatar, ActionIcon, Center, Loader, Alert, Skeleton } from '@mantine/core';
+import { IconCalendar, IconClock, IconMapPin, IconMessage, IconFileDescription, IconStar, IconAlertCircle } from '@tabler/icons-react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { notifications } from '@mantine/notifications';
+import { bookingsService } from '../../services/bookings.service';
+import { useAuth } from '../../contexts/AuthContext';
+import type { Booking } from '../../types/api.types';
 
-const mockBookings = {
-  upcoming: [
-    {
-      id: 1,
-      listing: {
-        id: 1,
-        title: 'Современная студия в центре',
-        image: 'https://images.unsplash.com/photo-1565953522043-baea26b83b7e?w=400',
-        location: 'Алматы, Медеуский район',
-      },
-      date: '2024-01-25',
-      time: '10:00 - 14:00',
-      status: 'confirmed',
-      price: 40000,
-      host: {
-        name: 'Айдар Сабиров',
-        avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100',
-      },
-    },
-    {
-      id: 2,
-      listing: {
-        id: 2,
-        title: 'Лофт с панорамными окнами',
-        image: 'https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?w=400',
-        location: 'Астана, Есильский район',
-      },
-      date: '2024-02-01',
-      time: '14:00 - 18:00',
-      status: 'pending',
-      price: 60000,
-      host: {
-        name: 'Карина Досова',
-        avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100',
-      },
-    },
-  ],
-  past: [
-    {
-      id: 3,
-      listing: {
-        id: 3,
-        title: 'Загородный дом с садом',
-        image: 'https://images.unsplash.com/photo-1416331108676-a22ccb276e35?w=400',
-        location: 'Алматинская область',
-      },
-      date: '2024-01-10',
-      time: '09:00 - 18:00',
-      status: 'completed',
-      price: 120000,
-      host: {
-        name: 'Ержан Токаев',
-        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100',
-      },
-      canReview: true,
-    },
-  ],
-  cancelled: [
-    {
-      id: 4,
-      listing: {
-        id: 4,
-        title: 'Минималистичный офис',
-        image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=400',
-        location: 'Шымкент, центр',
-      },
-      date: '2024-01-05',
-      time: '12:00 - 16:00',
-      status: 'cancelled',
-      price: 32000,
-      host: {
-        name: 'Мадина Алиева',
-        avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100',
-      },
-      cancelledBy: 'host',
-      reason: 'Локация недоступна в указанную дату',
-    },
-  ],
-};
+type BookingStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled';
 
-const statusColors = {
+const statusColors: Record<BookingStatus, string> = {
   pending: 'yellow',
   confirmed: 'green',
   completed: 'blue',
   cancelled: 'red',
 };
 
-const statusLabels = {
+const statusLabels: Record<BookingStatus, string> = {
   pending: 'Ожидает подтверждения',
   confirmed: 'Подтверждено',
   completed: 'Завершено',
@@ -99,31 +26,120 @@ const statusLabels = {
 
 export function BookingsPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<string | null>('upcoming');
 
-  const renderBookingCard = (booking: any) => (
-    <Card key={booking.id} shadow="sm" radius="md" withBorder>
+  // Fetch bookings
+  const { data: bookingsResponse, isLoading, isError, error } = useQuery({
+    queryKey: ['bookings', 'guest'],
+    queryFn: () => bookingsService.getMyBookings({ role: 'guest' }),
+    enabled: !!user,
+  });
+
+  const bookings = bookingsResponse?.data || [];
+
+  // Cancel booking mutation
+  const cancelBookingMutation = useMutation({
+    mutationFn: (bookingId: number) => bookingsService.cancelBooking(bookingId),
+    onSuccess: () => {
+      notifications.show({
+        title: 'Бронирование отменено',
+        message: 'Ваше бронирование успешно отменено',
+        color: 'green',
+      });
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+    },
+    onError: (error: any) => {
+      notifications.show({
+        title: 'Ошибка',
+        message: error.message || 'Не удалось отменить бронирование',
+        color: 'red',
+      });
+    },
+  });
+
+  // Categorize bookings
+  const categorizedBookings = useMemo(() => {
+    if (!bookings) return { upcoming: [], past: [], cancelled: [] };
+
+    const now = new Date();
+    const upcoming: Booking[] = [];
+    const past: Booking[] = [];
+    const cancelled: Booking[] = [];
+
+    bookings.forEach((booking) => {
+      const bookingDate = new Date(`${booking.date}T${booking.endTime}`);
+      
+      if (booking.status === 'cancelled') {
+        cancelled.push(booking);
+      } else if (bookingDate < now || booking.status === 'completed') {
+        past.push(booking);
+      } else {
+        upcoming.push(booking);
+      }
+    });
+
+    return { upcoming, past, cancelled };
+  }, [bookings]);
+
+  // Get primary image URL
+  const getPrimaryImage = (booking: Booking): string => {
+    const images = booking.listing?.images;
+    if (!images || images.length === 0) return 'https://placehold.co/400x300';
+    
+    const primaryImage = images.find(img => img.isPrimary);
+    return primaryImage?.url || images[0].url;
+  };
+
+  // Format time range
+  const formatTimeRange = (booking: Booking): string => {
+    return `${booking.startTime} - ${booking.endTime}`;
+  };
+
+  // Format date
+  const formatDate = (dateStr: string): string => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('ru-KZ', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+  };
+
+  // Check if can review
+  const canReview = (booking: Booking): boolean => {
+    if (booking.status !== 'completed') return false;
+    // TODO: Check if review exists when review feature is implemented
+    
+    const completedDate = new Date(booking.updatedAt || booking.createdAt);
+    const daysSinceCompleted = Math.floor((Date.now() - completedDate.getTime()) / (1000 * 60 * 60 * 24));
+    return daysSinceCompleted <= 14; // Can review within 14 days
+  };
+
+  const renderBookingCard = (booking: Booking) => (
+    <Card key={booking.id} shadow="sm" radius="md" withBorder h="100%">
       <Grid gutter="md">
-        <Grid.Col span={{ base: 12, sm: 4 }}>
+        <Grid.Col span={{ base: 12, xs: 5, sm: 4, md: 3 }}>
           <Image
-            src={booking.listing.image}
+            src={getPrimaryImage(booking)}
             height={150}
             radius="md"
-            style={{ cursor: 'pointer' }}
-            onClick={() => navigate(`/listings/${booking.listing.id}`)}
+            style={{ cursor: 'pointer', objectFit: 'cover' }}
+            onClick={() => navigate(`/listings/${booking.listing?.id}`)}
           />
         </Grid.Col>
-        <Grid.Col span={{ base: 12, sm: 8 }}>
+        <Grid.Col span={{ base: 12, xs: 7, sm: 8, md: 9 }}>
           <Stack gap="sm">
             <Group justify="space-between" align="flex-start">
               <div>
-                <Text fw={600} size="lg">
-                  {booking.listing.title}
+                <Text fw={600} size="lg" lineClamp={2}>
+                  {booking.listing?.title || 'Локация'}
                 </Text>
                 <Group gap="xs" mt={4}>
                   <IconMapPin size={16} />
                   <Text size="sm" c="dimmed">
-                    {booking.listing.location}
+                    {booking.listing?.city || 'Не указано'}
                   </Text>
                 </Group>
               </div>
@@ -132,24 +148,26 @@ export function BookingsPage() {
               </Badge>
             </Group>
 
-            <Group gap="xl">
+            <Group gap="xl" wrap="wrap">
               <Group gap="xs">
                 <IconCalendar size={16} />
-                <Text size="sm">{booking.date}</Text>
+                <Text size="sm">{formatDate(booking.date)}</Text>
               </Group>
               <Group gap="xs">
                 <IconClock size={16} />
-                <Text size="sm">{booking.time}</Text>
+                <Text size="sm">{formatTimeRange(booking)}</Text>
               </Group>
               <Text size="sm" fw={600}>
-                {booking.price.toLocaleString()} ₸
+                {booking.totalPrice.toLocaleString('ru-KZ')} ₸
               </Text>
             </Group>
 
-            <Group justify="space-between" align="center">
+            <Group justify="space-between" align="center" wrap="wrap" gap="xs">
               <Group gap="xs">
-                <Avatar src={booking.host.avatar} size="sm" radius="xl" />
-                <Text size="sm">{booking.host.name}</Text>
+                <Avatar src={booking.host?.avatar} size="sm" radius="xl">
+                  {booking.host?.name?.charAt(0).toUpperCase()}
+                </Avatar>
+                <Text size="sm">{booking.host?.name || 'Хост'}</Text>
               </Group>
 
               <Group gap="xs">
@@ -159,7 +177,7 @@ export function BookingsPage() {
                       size="sm"
                       variant="light"
                       leftSection={<IconMessage size={16} />}
-                      onClick={() => navigate(`/bookings/${booking.id}/chat`)}
+                      onClick={() => navigate(`/messages?bookingId=${booking.id}`)}
                     >
                       Чат
                     </Button>
@@ -177,11 +195,17 @@ export function BookingsPage() {
                     size="sm"
                     variant="light"
                     color="red"
+                    onClick={() => {
+                      if (window.confirm('Вы уверены, что хотите отменить бронирование?')) {
+                        cancelBookingMutation.mutate(booking.id);
+                      }
+                    }}
+                    loading={cancelBookingMutation.isPending}
                   >
                     Отменить
                   </Button>
                 )}
-                {booking.canReview && (
+                {canReview(booking) && (
                   <Button
                     size="sm"
                     leftSection={<IconStar size={16} />}
@@ -192,10 +216,10 @@ export function BookingsPage() {
               </Group>
             </Group>
 
-            {booking.status === 'cancelled' && (
+            {booking.status === 'cancelled' && booking.cancellationReason && (
               <Paper p="sm" bg="red.0" radius="sm">
                 <Text size="sm" c="red">
-                  Отменено {booking.cancelledBy === 'host' ? 'хостом' : 'вами'}: {booking.reason}
+                  Отменено: {booking.cancellationReason}
                 </Text>
               </Paper>
             )}
@@ -205,6 +229,64 @@ export function BookingsPage() {
     </Card>
   );
 
+  if (!user) {
+    return (
+      <Container size="xl" my="xl">
+        <Alert
+          icon={<IconAlertCircle size={16} />}
+          title="Авторизуйтесь"
+          color="blue"
+        >
+          Для просмотра бронирований необходимо войти в систему
+        </Alert>
+      </Container>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <Container size="xl" my="xl">
+        <Title order={1} mb="xl">Мои бронирования</Title>
+        <Stack gap="md">
+          {[...Array(3)].map((_, index) => (
+            <Card key={index} shadow="sm" radius="md" withBorder>
+              <Grid gutter="md">
+                <Grid.Col span={{ base: 12, xs: 5, sm: 4, md: 3 }}>
+                  <Skeleton height={150} radius="md" />
+                </Grid.Col>
+                <Grid.Col span={{ base: 12, xs: 7, sm: 8, md: 9 }}>
+                  <Stack gap="sm">
+                    <Skeleton height={24} width="70%" />
+                    <Skeleton height={16} width="40%" />
+                    <Group gap="xl">
+                      <Skeleton height={16} width={100} />
+                      <Skeleton height={16} width={100} />
+                      <Skeleton height={16} width={80} />
+                    </Group>
+                  </Stack>
+                </Grid.Col>
+              </Grid>
+            </Card>
+          ))}
+        </Stack>
+      </Container>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Container size="xl" my="xl">
+        <Alert
+          icon={<IconAlertCircle size={16} />}
+          title="Ошибка загрузки"
+          color="red"
+        >
+          {error?.message || 'Не удалось загрузить бронирования'}
+        </Alert>
+      </Container>
+    );
+  }
+
   return (
     <Container size="xl" my="xl">
       <Title order={1} mb="xl">Мои бронирования</Title>
@@ -212,31 +294,49 @@ export function BookingsPage() {
       <Tabs value={activeTab} onChange={setActiveTab}>
         <Tabs.List mb="xl">
           <Tabs.Tab value="upcoming">
-            Предстоящие ({mockBookings.upcoming.length})
+            Предстоящие ({categorizedBookings.upcoming.length})
           </Tabs.Tab>
           <Tabs.Tab value="past">
-            Прошедшие ({mockBookings.past.length})
+            Прошедшие ({categorizedBookings.past.length})
           </Tabs.Tab>
           <Tabs.Tab value="cancelled">
-            Отменённые ({mockBookings.cancelled.length})
+            Отменённые ({categorizedBookings.cancelled.length})
           </Tabs.Tab>
         </Tabs.List>
 
         <Tabs.Panel value="upcoming">
           <Stack gap="md">
-            {mockBookings.upcoming.map(renderBookingCard)}
+            {categorizedBookings.upcoming.length > 0 ? (
+              categorizedBookings.upcoming.map(renderBookingCard)
+            ) : (
+              <Text c="dimmed" ta="center" py="xl">
+                У вас нет предстоящих бронирований
+              </Text>
+            )}
           </Stack>
         </Tabs.Panel>
 
         <Tabs.Panel value="past">
           <Stack gap="md">
-            {mockBookings.past.map(renderBookingCard)}
+            {categorizedBookings.past.length > 0 ? (
+              categorizedBookings.past.map(renderBookingCard)
+            ) : (
+              <Text c="dimmed" ta="center" py="xl">
+                У вас нет прошедших бронирований
+              </Text>
+            )}
           </Stack>
         </Tabs.Panel>
 
         <Tabs.Panel value="cancelled">
           <Stack gap="md">
-            {mockBookings.cancelled.map(renderBookingCard)}
+            {categorizedBookings.cancelled.length > 0 ? (
+              categorizedBookings.cancelled.map(renderBookingCard)
+            ) : (
+              <Text c="dimmed" ta="center" py="xl">
+                У вас нет отменённых бронирований
+              </Text>
+            )}
           </Stack>
         </Tabs.Panel>
       </Tabs>

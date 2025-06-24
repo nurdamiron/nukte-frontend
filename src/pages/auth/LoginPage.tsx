@@ -1,12 +1,22 @@
-import { Container, Paper, Title, Text, TextInput, PasswordInput, Button, Group, Anchor, Stack, Divider, Center } from '@mantine/core';
+import { Container, Paper, Title, Text, TextInput, PasswordInput, Button, Group, Anchor, Stack, Divider, Alert } from '@mantine/core';
 import { useForm } from '@mantine/form';
-import { IconMail, IconLock, IconBrandGoogle, IconPhone } from '@tabler/icons-react';
-import { useNavigate } from 'react-router-dom';
+import { notifications } from '@mantine/notifications';
+import { IconMail, IconLock, IconBrandGoogle, IconPhone, IconAlertCircle } from '@tabler/icons-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useState } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+import { LoginRequest } from '../../types/api.types';
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const from = location.state?.from?.pathname || '/';
   
-  const form = useForm({
+  const form = useForm<LoginRequest>({
     initialValues: {
       email: '',
       password: '',
@@ -17,10 +27,32 @@ export function LoginPage() {
     },
   });
 
-  const handleSubmit = (values: typeof form.values) => {
-    console.log(values);
-    // TODO: Implement login
-    navigate('/');
+  const handleSubmit = async (values: LoginRequest) => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      await login(values);
+      
+      notifications.show({
+        title: 'Успешный вход',
+        message: 'Добро пожаловать!',
+        color: 'green',
+      });
+      
+      navigate(from, { replace: true });
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || 'Ошибка при входе в систему';
+      setError(errorMessage);
+      
+      notifications.show({
+        title: 'Ошибка',
+        message: errorMessage,
+        color: 'red',
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -37,10 +69,17 @@ export function LoginPage() {
 
       <Paper withBorder shadow="md" p={30} radius="md">
         <Stack gap="md">
+          {error && (
+            <Alert icon={<IconAlertCircle size={16} />} color="red" variant="light">
+              {error}
+            </Alert>
+          )}
+
           <Button
             fullWidth
             variant="default"
             leftSection={<IconBrandGoogle size={18} />}
+            disabled={loading}
           >
             Войти через Google
           </Button>
@@ -49,6 +88,7 @@ export function LoginPage() {
             fullWidth
             variant="default"
             leftSection={<IconPhone size={18} />}
+            disabled={loading}
           >
             Войти по номеру телефона
           </Button>
@@ -61,6 +101,7 @@ export function LoginPage() {
                 label="Email"
                 placeholder="your@email.com"
                 leftSection={<IconMail size={16} />}
+                disabled={loading}
                 {...form.getInputProps('email')}
               />
 
@@ -68,19 +109,26 @@ export function LoginPage() {
                 label="Пароль"
                 placeholder="Ваш пароль"
                 leftSection={<IconLock size={16} />}
+                disabled={loading}
                 {...form.getInputProps('password')}
               />
 
-              <Group justify="space-between" mt="xs">
+              <Group justify="flex-end" mt="xs">
                 <Anchor
-                  onClick={() => console.log('Forgot password')}
+                  onClick={() => navigate('/forgot-password')}
                   size="sm"
                 >
                   Забыли пароль?
                 </Anchor>
               </Group>
 
-              <Button fullWidth mt="xl" type="submit">
+              <Button 
+                fullWidth 
+                mt="xl" 
+                type="submit"
+                loading={loading}
+                disabled={loading}
+              >
                 Войти
               </Button>
             </Stack>
