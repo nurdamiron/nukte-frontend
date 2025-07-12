@@ -30,7 +30,7 @@ export interface RegisterRequest {
   email: string;
   password: string;
   phone?: string;
-  role?: 'guest' | 'host' | 'both';
+  role?: 'filmmaker' | 'location_owner' | 'both';
 }
 
 export interface AuthResponse {
@@ -42,11 +42,11 @@ export interface AuthResponse {
 // User types
 export interface User {
   id: number;
-  name: string;
+  name?: string;
   email: string;
   phone?: string;
   avatar?: string;
-  role: 'guest' | 'host' | 'both' | 'admin';
+  role: 'filmmaker' | 'location_owner' | 'both' | 'admin';
   bio?: string;
   location?: string;
   verified: boolean;
@@ -54,27 +54,82 @@ export interface User {
   createdAt: string;
 }
 
-// Listing types
+// Filming Location types
+export type LocationType = 'urban' | 'nature' | 'industrial' | 'historical' | 'modern' | 'abandoned' | 'rooftop' | 'underground' | 'water' | 'architectural' | 'minimalist' | 'vintage';
+
+export type ShootingType = 'photo' | 'video' | 'cinema' | 'commercial' | 'fashion' | 'music_video' | 'documentary';
+
+export type NoiseLevel = 'quiet' | 'moderate' | 'noisy';
+
+export interface TimeRestrictions {
+  day: boolean;
+  night: boolean;
+  weekend: boolean;
+}
+
+export interface EquipmentAllowed {
+  professional_camera: boolean;
+  lighting: boolean;
+  drone: boolean;
+  heavy_equipment: boolean;
+}
+
 export interface Listing {
   id: number;
   userId: number;
   title: string;
   description: string;
-  category: string;
+  category: string; // legacy field
+  locationType: LocationType;
+  shootingTypes: ShootingType[];
   address: string;
   city: string;
   latitude?: number;
   longitude?: number;
   area: number;
-  maxGuests: number;
+  maxGuests: number; // legacy field
+  capacityPeople: number; // максимальная команда
+  teamSize?: number; // alias for capacityPeople
   pricePerHour: number;
   pricePerDay?: number;
   amenities: string[];
   rules?: string;
+  
+  // Новые поля для съемочных локаций
+  timeRestrictions: TimeRestrictions;
+  equipmentAllowed: EquipmentAllowed;
+  parkingSpaces: number;
+  powerOutlets: boolean;
+  wifiAvailable: boolean;
+  changingRoom: boolean;
+  cateringSpace: boolean;
+  noiseLevel: NoiseLevel;
+  weatherDependent: boolean;
+  permitsRequired: boolean;
+  securityDeposit: number;
+  insuranceRequired: boolean;
+  minBookingHours: number;
+  maxBookingHours: number;
+  setupTimeMinutes: number;
+  cleanupTimeMinutes: number;
+  
+  // Дополнительные поля для съемочных локаций
+  allowedShootingTypes?: ShootingType[];
+  allowedEquipment?: string[];
+  hasElectricity?: boolean;
+  hasWifi?: boolean;
+  hasParking?: boolean;
+  hasDressingRoom?: boolean;
+  hasCatering?: boolean;
+  isWeatherDependent?: boolean;
+  requiresPermit?: boolean;
+  requiresInsurance?: boolean;
+  additionalServices?: string;
+  
   status: 'active' | 'paused' | 'deleted';
   images: ListingImage[];
   user?: User;
-  host?: User;
+  owner?: User; // владелец локации (бывший host)
   rating?: number;
   reviewsCount?: number;
   reviews?: Review[];
@@ -93,36 +148,58 @@ export interface ListingImage {
 export interface CreateListingRequest {
   title: string;
   description: string;
-  category: string;
+  locationType: LocationType;
+  shootingTypes: ShootingType[];
   address: string;
   city: string;
   area: number;
-  maxGuests: number;
+  capacityPeople: number;
   pricePerHour: number;
   pricePerDay?: number;
   amenities: string[];
   rules?: string;
+  
+  // Новые поля для съемочных локаций
+  timeRestrictions: TimeRestrictions;
+  equipmentAllowed: EquipmentAllowed;
+  parkingSpaces: number;
+  powerOutlets: boolean;
+  wifiAvailable: boolean;
+  changingRoom: boolean;
+  cateringSpace: boolean;
+  noiseLevel: NoiseLevel;
+  weatherDependent: boolean;
+  permitsRequired: boolean;
+  securityDeposit: number;
+  insuranceRequired: boolean;
+  minBookingHours: number;
+  maxBookingHours: number;
+  setupTimeMinutes: number;
+  cleanupTimeMinutes: number;
 }
 
-// Booking types
+// Shooting Booking types
 export interface Booking {
   id: number;
   listingId: number;
-  guestId: number;
-  hostId: number;
+  filmakerId: number; // бывший guestId
+  locationOwnerId: number; // бывший hostId
   date: string;
   startTime: string;
   endTime: string;
-  guestsCount: number;
+  teamSize: number; // бывший guestsCount
+  shootingType: ShootingType;
+  equipmentDescription?: string;
   totalPrice: number;
   serviceFee: number;
+  securityDeposit?: number;
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
   cancelledBy?: number;
   cancellationReason?: string;
-  guestMessage?: string;
+  filmmakerMessage?: string; // бывший guestMessage
   listing?: Listing;
-  guest?: User;
-  host?: User;
+  filmmaker?: User; // бывший guest
+  locationOwner?: User; // бывший host
   createdAt: string;
   updatedAt: string;
 }
@@ -132,8 +209,10 @@ export interface CreateBookingRequest {
   date: string;
   startTime: string;
   endTime: string;
-  guestsCount: number;
-  guestMessage?: string;
+  teamSize: number;
+  shootingType: ShootingType | string;
+  equipmentDescription?: string;
+  filmmakerMessage?: string;
 }
 
 // Alias for backward compatibility
@@ -171,23 +250,84 @@ export interface Review {
   reviewedId: number;
   rating: number;
   comment?: string;
-  reviewerType: 'guest' | 'host';
+  reviewerType: 'filmmaker' | 'location_owner';
   reviewer?: User;
   createdAt: string;
 }
 
-// Search/Filter types
-export interface ListingFilters {
-  category?: string;
+// Shooting Review types (более детальные отзывы о съемках)
+export interface ShootingReview {
+  id: number;
+  listingId: number;
+  userId: number;
+  bookingId?: number;
+  shootingType: ShootingType;
+  ratingLocation: number; // оценка локации
+  ratingFacilities: number; // оценка удобств
+  ratingOwner: number; // оценка владельца
+  equipmentUsed: string[]; // использованное оборудование
+  teamSize: number;
+  reviewText: string;
+  photos?: string[]; // фото с съемки (если разрешено)
+  wouldBookAgain: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Saved Locations (вишлист)
+export interface SavedLocation {
+  id: number;
+  userId: number;
+  listingId: number;
+  savedFor: ShootingType | 'other';
+  notes?: string;
+  listing?: Listing;
+  createdAt: string;
+}
+
+// Search/Filter types for Filming Locations
+export interface LocationFilters {
+  locationType?: LocationType;
+  shootingTypes?: ShootingType[];
   city?: string;
   priceMin?: number;
   priceMax?: number;
   areaMin?: number;
   areaMax?: number;
+  teamSizeMin?: number;
+  teamSizeMax?: number;
   amenities?: string[];
   date?: string;
   startTime?: string;
   endTime?: string;
+  
+  // Специфичные фильтры для съемок
+  powerOutlets?: boolean;
+  wifiAvailable?: boolean;
+  changingRoom?: boolean;
+  cateringSpace?: boolean;
+  parkingRequired?: boolean;
+  noiseLevel?: NoiseLevel[];
+  weatherDependent?: boolean;
+  permitsRequired?: boolean;
+  insuranceRequired?: boolean;
+  minBookingHours?: number;
+  maxBookingHours?: number;
+  
+  // Фильтры по времени
+  dayShootingAllowed?: boolean;
+  nightShootingAllowed?: boolean;
+  weekendShootingAllowed?: boolean;
+  
+  // Фильтры по оборудованию
+  professionalCameraAllowed?: boolean;
+  lightingAllowed?: boolean;
+  droneAllowed?: boolean;
+}
+
+// Backward compatibility
+export interface ListingFilters extends LocationFilters {
+  category?: string;
   guestsCount?: number;
 }
 
@@ -197,4 +337,17 @@ export interface SearchParams extends ListingFilters {
   limit?: number;
   sortBy?: 'price' | 'rating' | 'createdAt';
   sortOrder?: 'asc' | 'desc';
+  // Additional filtering fields
+  allowedShootingTypes?: ShootingType[] | string[];
+  allowedEquipment?: string[];
+  hasElectricity?: boolean;
+  hasWifi?: boolean;
+  hasParking?: boolean;
+  hasDressingRoom?: boolean;
+  hasCatering?: boolean;
+  isWeatherDependent?: boolean;
+  requiresPermit?: boolean;
+  requiresInsurance?: boolean;
+  teamSizeMin?: number;
+  teamSizeMax?: number;
 }

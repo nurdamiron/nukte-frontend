@@ -6,57 +6,46 @@ export const API_CONFIG = {
 };
 
 export const API_ENDPOINTS = {
-  // Auth endpoints
   AUTH: {
     LOGIN: '/auth/login',
     REGISTER: '/auth/register',
-    LOGOUT: '/auth/logout',
-    REFRESH: '/auth/refresh',
     ME: '/auth/me',
     UPDATE_PROFILE: '/auth/profile',
+    CHANGE_PASSWORD: '/auth/profile/password',
+    REFRESH_TOKEN: '/auth/refresh',
+    LOGOUT: '/auth/logout',
     FORGOT_PASSWORD: '/auth/forgot-password',
     RESET_PASSWORD: '/auth/reset-password',
     SEND_VERIFICATION: '/auth/send-verification',
     VERIFY_EMAIL: '/auth/verify-email',
   },
-  
-  // Listings endpoints
   LISTINGS: {
     BASE: '/listings',
     BY_ID: (id: number) => `/listings/${id}`,
     SEARCH: '/listings/search',
     BY_USER: '/listings/user',
-    UPLOAD_IMAGES: (id: number) => `/listings/${id}/images`,
+    UPLOAD_IMAGES: (listingId: number) => `/listings/${listingId}/images`,
   },
-  
-  // Bookings endpoints
   BOOKINGS: {
     BASE: '/bookings',
     BY_ID: (id: number) => `/bookings/${id}`,
-    MY_BOOKINGS: '/bookings/my',
+    MY_BOOKINGS: '/bookings/me',
     BY_LISTING: (listingId: number) => `/bookings/listing/${listingId}`,
     CANCEL: (id: number) => `/bookings/${id}/cancel`,
   },
-  
-  // Messages endpoints
   MESSAGES: {
     CONVERSATIONS: '/messages/conversations',
     BY_BOOKING: (bookingId: number) => `/messages/booking/${bookingId}`,
-    SEND: '/messages/send',
-    MARK_READ: (id: number) => `/messages/${id}/read`,
+    SEND: '/messages',
+    MARK_READ: (messageId: number) => `/messages/read/${messageId}`,
   },
-  
-  // Reviews endpoints
   REVIEWS: {
-    BY_LISTING: (listingId: number) => `/reviews/listing/${listingId}`,
-    CREATE: '/reviews',
-    BY_USER: (userId: number) => `/reviews/user/${userId}`,
+    BASE: '/reviews',
+    BY_ID: (id: number) => `/reviews/${id}`,
+    LISTING: (listingId: number) => `/reviews/listing/${listingId}`,
+    USER: (userId: number) => `/reviews/user/${userId}`,
   },
-  
-  // Upload endpoints
   UPLOAD: {
     IMAGE: '/upload/image',
-    IMAGES: '/upload/images',
-    AVATAR: '/upload/avatar',
   },
 };

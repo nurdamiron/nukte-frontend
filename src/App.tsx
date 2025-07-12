@@ -1,4 +1,4 @@
-import { MantineProvider } from '@mantine/core';
+import { MantineProvider, ColorSchemeScript } from '@mantine/core';
 import { Notifications } from '@mantine/notifications';
 import { ModalsProvider } from '@mantine/modals';
 import { BrowserRouter } from 'react-router-dom';
@@ -17,7 +17,7 @@ import '@mantine/carousel/styles.css';
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <MantineProvider theme={theme}>
+      <MantineProvider theme={theme} defaultColorScheme="dark">
         <Notifications position="top-right" />
         <ModalsProvider>
           <AuthProvider>

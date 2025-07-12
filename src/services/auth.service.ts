@@ -54,7 +54,6 @@ class AuthService extends BaseService {
     } finally {
       removeAuthToken();
       localStorage.removeItem('user');
-      window.location.href = '/login';
     }
   }
 
@@ -87,6 +86,10 @@ class AuthService extends BaseService {
     const response = await this.post<{ user: User; message: string }>(API_ENDPOINTS.AUTH.VERIFY_EMAIL, { code });
     localStorage.setItem('user', JSON.stringify(response.user));
     return response;
+  }
+
+  async changePassword(data: { oldPassword: string; newPassword: string }): Promise<{ message: string }> {
+    return this.patch(API_ENDPOINTS.AUTH.CHANGE_PASSWORD, data);
   }
 }
 

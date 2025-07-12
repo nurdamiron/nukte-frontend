@@ -1,5 +1,5 @@
 import { Container, Title, Text, Button, Grid, Card, Image, Badge, Group, Stack, Box, BackgroundImage, Center, TextInput, Select, ActionIcon, ThemeIcon, Transition, Paper, Overlay, Skeleton, Alert } from '@mantine/core';
-import { IconSearch, IconMapPin, IconCalendar, IconArrowRight, IconStar, IconPhoto, IconTrees, IconBuildingSkyscraper, IconHome, IconBuildingStore, IconBalloon, IconSparkles, IconAlertCircle } from '@tabler/icons-react';
+import { IconSearch, IconMapPin, IconCalendar, IconArrowRight, IconStar, IconPhoto, IconTrees, IconBuildingSkyscraper, IconHome, IconBuildingStore, IconBalloon, IconSparkles, IconAlertCircle, IconVideo, IconBuildingFactory, IconBuildingCastle, IconTree, IconMountain, IconMusic, IconDeviceGamepad2 } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { listingsService } from '../../services/listings.service';
@@ -8,12 +8,14 @@ import classes from './HomePage.module.css';
 
 
 const categories = [
-  { value: 'studio', label: 'Студии', icon: IconPhoto, color: 'blue' },
-  { value: 'outdoor', label: 'Открытые пространства', icon: IconTrees, color: 'green' },
-  { value: 'industrial', label: 'Индустриальные', icon: IconBuildingSkyscraper, color: 'orange' },
-  { value: 'residential', label: 'Жилые помещения', icon: IconHome, color: 'pink' },
-  { value: 'commercial', label: 'Коммерческие', icon: IconBuildingStore, color: 'gray' },
-  { value: 'event', label: 'Event-пространства', icon: IconBalloon, color: 'violet' },
+  { value: 'urban', label: 'Городские локации', icon: IconBuildingSkyscraper, color: 'blue' },
+  { value: 'nature', label: 'Природа', icon: IconTrees, color: 'green' },
+  { value: 'industrial', label: 'Индустриальные', icon: IconBuildingFactory, color: 'orange' },
+  { value: 'abandoned', label: 'Заброшенные места', icon: IconBuildingCastle, color: 'dark' },
+  { value: 'rooftop', label: 'Крыши', icon: IconMountain, color: 'cyan' },
+  { value: 'modern', label: 'Современные', icon: IconHome, color: 'pink' },
+  { value: 'vintage', label: 'Винтажные', icon: IconMusic, color: 'yellow' },
+  { value: 'minimalist', label: 'Минимализм', icon: IconDeviceGamepad2, color: 'gray' },
 ];
 
 export function HomePage() {
@@ -46,12 +48,18 @@ export function HomePage() {
   // Get category display name
   const getCategoryLabel = (category: string): string => {
     const categoryMap: Record<string, string> = {
-      studio: 'Студия',
-      outdoor: 'Открытое пространство',
-      industrial: 'Индустриальное',
-      residential: 'Жилое помещение',
-      commercial: 'Коммерческое',
-      event: 'Event-пространство',
+      urban: 'Городская локация',
+      nature: 'Природа',
+      industrial: 'Индустриальная',
+      abandoned: 'Заброшенное место',
+      rooftop: 'Крыша',
+      modern: 'Современная',
+      vintage: 'Винтажная',
+      minimalist: 'Минимализм',
+      historical: 'Историческая',
+      underground: 'Подземная',
+      water: 'У воды',
+      architectural: 'Архитектурная',
     };
     return categoryMap[category] || category;
   };
@@ -85,7 +93,7 @@ export function HomePage() {
                   lineHeight: 1.2
                 }}
               >
-                Найдите идеальную локацию для вашей съёмки
+                Найдите идеальную локацию для съёмки
               </Title>
               <Text
                 size="lg"
@@ -96,7 +104,7 @@ export function HomePage() {
                 px="md"
                 style={{ textShadow: '0 1px 10px rgba(0, 0, 0, 0.5)' }}
               >
-                Более 1000 уникальных пространств для фото, видео и мероприятий по всему Казахстану
+                Уникальные локации для фото, видео, кино и рекламы. От городских крыш до заброшенных заводов
               </Text>
               
               {/* Search Form */}
@@ -108,8 +116,9 @@ export function HomePage() {
                 maw={1000} 
                 style={{ 
                   backdropFilter: 'blur(20px)', 
-                  backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                  border: '1px solid rgba(255, 255, 255, 0.5)'
+                  backgroundColor: 'var(--mantine-color-body)',
+                  border: '1px solid var(--mantine-color-default-border)',
+                  opacity: 0.95
                 }}
               >
                 <Stack gap="sm">
@@ -137,14 +146,19 @@ export function HomePage() {
                     </Grid.Col>
                     <Grid.Col span={{ base: 12, xs: 12, sm: 6, md: 3 }}>
                       <Select
-                        placeholder="Тип локации"
-                        data={categories.map(cat => ({ 
-                          value: cat.value, 
-                          label: cat.label,
-                        }))}
+                        placeholder="Тип съёмки"
+                        data={[
+                          { value: 'photo', label: 'Фотосессия' },
+                          { value: 'video', label: 'Видеосъёмка' },
+                          { value: 'cinema', label: 'Кино' },
+                          { value: 'commercial', label: 'Реклама' },
+                          { value: 'fashion', label: 'Мода' },
+                          { value: 'music_video', label: 'Клип' },
+                          { value: 'documentary', label: 'Документалка' },
+                        ]}
                         leftSection={
                           <ThemeIcon size="sm" variant="light" color="grape" radius="xl">
-                            <IconBuildingStore size={16} />
+                            <IconVideo size={16} />
                           </ThemeIcon>
                         }
                         size="md"
@@ -214,9 +228,9 @@ export function HomePage() {
                   {/* Popular searches on mobile */}
                   <Group gap="xs" style={{ display: 'flex' }} hiddenFrom="md">
                     <Text size="xs" c="dimmed">Популярное:</Text>
-                    <Badge size="sm" variant="light" color="violet" style={{ cursor: 'pointer' }}>Студии</Badge>
-                    <Badge size="sm" variant="light" color="grape" style={{ cursor: 'pointer' }}>Лофты</Badge>
-                    <Badge size="sm" variant="light" color="pink" style={{ cursor: 'pointer' }}>На природе</Badge>
+                    <Badge size="sm" variant="light" color="violet" style={{ cursor: 'pointer' }}>Крыши</Badge>
+                    <Badge size="sm" variant="light" color="grape" style={{ cursor: 'pointer' }}>Заброшки</Badge>
+                    <Badge size="sm" variant="light" color="pink" style={{ cursor: 'pointer' }}>Природа</Badge>
                   </Group>
                 </Stack>
               </Paper>
@@ -269,8 +283,8 @@ export function HomePage() {
                   display: 'flex', 
                   alignItems: 'center', 
                   justifyContent: 'center',
-                  background: `linear-gradient(135deg, var(--mantine-color-${category.color}-0) 0%, var(--mantine-color-${category.color}-1) 100%)`,
-                  border: `2px solid var(--mantine-color-${category.color}-2)`,
+                  background: `linear-gradient(135deg, color-mix(in srgb, var(--mantine-color-${category.color}-6) 20%, transparent) 0%, color-mix(in srgb, var(--mantine-color-${category.color}-6) 10%, transparent) 100%)`,
+                  border: `2px solid color-mix(in srgb, var(--mantine-color-${category.color}-6) 30%, transparent)`,
                   position: 'relative',
                   overflow: 'hidden',
                   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -282,13 +296,13 @@ export function HomePage() {
                     }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = 'translateY(-6px) scale(1.02)';
-                  e.currentTarget.style.boxShadow = `0 12px 24px var(--mantine-color-${category.color}-3)`;
-                  e.currentTarget.style.borderColor = `var(--mantine-color-${category.color}-4)`;
+                  e.currentTarget.style.boxShadow = `0 12px 24px color-mix(in srgb, var(--mantine-color-${category.color}-6) 40%, transparent)`;
+                  e.currentTarget.style.borderColor = `color-mix(in srgb, var(--mantine-color-${category.color}-6) 50%, transparent)`;
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.transform = 'translateY(0) scale(1)';
                   e.currentTarget.style.boxShadow = 'none';
-                  e.currentTarget.style.borderColor = `var(--mantine-color-${category.color}-2)`;
+                  e.currentTarget.style.borderColor = `color-mix(in srgb, var(--mantine-color-${category.color}-6) 30%, transparent)`;
                 }}
               >
                 <Box
@@ -299,18 +313,18 @@ export function HomePage() {
                     width: 100,
                     height: 100,
                     borderRadius: '50%',
-                    background: `var(--mantine-color-${category.color}-1)`,
-                    opacity: 0.3,
+                    background: `color-mix(in srgb, var(--mantine-color-${category.color}-6) 25%, transparent)`,
+                    opacity: 0.5,
                   }}
                 />
                 <Stack align="center" gap="xs" style={{ position: 'relative', zIndex: 1 }}>
                   <ThemeIcon 
                     size={44} 
-                    variant="white" 
+                    variant="light" 
                     color={category.color} 
                     radius="xl"
                     style={{
-                      boxShadow: `0 4px 12px var(--mantine-color-${category.color}-3)`,
+                      boxShadow: `0 4px 12px color-mix(in srgb, var(--mantine-color-${category.color}-6) 30%, transparent)`,
                     }}
                   >
                     <category.icon size={26} />
@@ -320,7 +334,7 @@ export function HomePage() {
                     fw={600} 
                     ta="center"
                     style={{ 
-                      color: `var(--mantine-color-${category.color}-9)`,
+                      color: `var(--mantine-color-${category.color}-4)`,
                       letterSpacing: '0.5px'
                     }}
                   >
@@ -336,7 +350,17 @@ export function HomePage() {
       {/* Featured Locations */}
       <Stack gap="xl" mb="xl">
         <Group justify="space-between" align="center">
-          <Title order={2}>Рекомендуемые локации</Title>
+          <div>
+            <Title order={2} mb={4}>
+              <Group gap="xs">
+                <ThemeIcon size="lg" variant="gradient" gradient={{ from: 'orange', to: 'red' }} radius="xl">
+                  <IconPhoto size={20} />
+                </ThemeIcon>
+                Топовые локации для съёмок
+              </Group>
+            </Title>
+            <Text size="sm" c="dimmed">Самые популярные места среди фотографов и режиссёров</Text>
+          </div>
           <Button
             variant="subtle"
             rightSection={<IconArrowRight size={16} />}
@@ -349,16 +373,24 @@ export function HomePage() {
         {/* Loading State */}
         {isLoadingFeatured && (
           <Grid>
-            {[...Array(4)].map((_, index) => (
+            {[...Array(8)].map((_, index) => (
               <Grid.Col key={index} span={{ base: 12, xs: 6, sm: 6, md: 4, lg: 3 }}>
-                <Card shadow="sm" radius="md" withBorder h="100%">
+                <Card shadow="xl" radius="xl" withBorder h="100%" style={{
+                  backdropFilter: 'blur(10px)',
+                  background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05))',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                }}>
                   <Card.Section>
-                    <Skeleton height={200} />
+                    <Skeleton height={200} radius="xl" />
                   </Card.Section>
                   <Stack gap="sm" mt="md">
-                    <Skeleton height={20} />
-                    <Skeleton height={16} width="70%" />
-                    <Skeleton height={14} width="50%" />
+                    <Skeleton height={24} radius="xl" />
+                    <Skeleton height={16} width="70%" radius="xl" />
+                    <Skeleton height={14} width="50%" radius="xl" />
+                    <Group gap="xs" justify="space-between">
+                      <Skeleton height={20} width="60%" radius="xl" />
+                      <Skeleton height={28} width="80px" radius="xl" />
+                    </Group>
                   </Stack>
                 </Card>
               </Grid.Col>
@@ -383,24 +415,27 @@ export function HomePage() {
             {featuredListings.data.slice(0, 8).map((location) => (
             <Grid.Col key={location.id} span={{ base: 12, xs: 6, sm: 6, md: 4, lg: 3 }}>
               <Card
-                shadow="sm"
-                radius="md"
+                shadow="xl"
+                radius="xl"
                 withBorder
                 h="100%"
                 style={{ 
                   cursor: 'pointer', 
                   display: 'flex', 
                   flexDirection: 'column',
-                  transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                  overflow: 'hidden'
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  overflow: 'hidden',
+                  backdropFilter: 'blur(10px)',
+                  background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05))',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
                 }}
                 onClick={() => navigate(`/listings/${location.id}`)}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-4px)';
-                  e.currentTarget.style.boxShadow = '0 12px 20px rgba(0,0,0,0.1)';
+                  e.currentTarget.style.transform = 'translateY(-8px) scale(1.02)';
+                  e.currentTarget.style.boxShadow = '0 20px 40px rgba(0,0,0,0.2)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.transform = 'translateY(0) scale(1)';
                   e.currentTarget.style.boxShadow = '';
                 }}
               >
@@ -421,15 +456,18 @@ export function HomePage() {
                     size="sm"
                     variant="filled"
                     color="dark"
+                    radius="xl"
                     style={{ 
                       position: 'absolute', 
-                      top: 12, 
-                      right: 12,
-                      backgroundColor: 'rgba(0, 0, 0, 0.7)'
+                      top: 16, 
+                      right: 16,
+                      backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                      backdropFilter: 'blur(10px)',
+                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
                     }}
                   >
                     <Group gap={4}>
-                      <IconStar size={14} fill="currentColor" />
+                      <IconStar size={14} fill="currentColor" style={{ color: '#FFD43B' }} />
                       {location.rating || 0}
                     </Group>
                   </Badge>
@@ -442,8 +480,13 @@ export function HomePage() {
                     </Text>
                     <Badge 
                       variant="gradient" 
-                      gradient={{ from: 'violet', to: 'grape' }}
-                      style={{ flexShrink: 0 }}
+                      gradient={{ from: 'violet', to: 'purple', deg: 45 }}
+                      radius="xl"
+                      size="lg"
+                      style={{ 
+                        flexShrink: 0,
+                        boxShadow: '0 4px 12px rgba(139, 69, 199, 0.3)',
+                      }}
                     >
                       {formatPrice(location)}
                     </Badge>
@@ -488,23 +531,34 @@ export function HomePage() {
       </Stack>
 
       {/* CTA Section */}
-      <Card shadow="lg" radius="lg" p="xl" mb="xl" bg="brand.0">
+      <Card shadow="lg" radius="lg" p="xl" mb="xl" withBorder style={{
+        background: 'linear-gradient(135deg, rgba(108, 43, 217, 0.1) 0%, rgba(216, 180, 254, 0.1) 100%)',
+        border: '2px solid rgba(108, 43, 217, 0.2)'
+      }}>
         <Grid align="center">
           <Grid.Col span={{ base: 12, md: 8 }}>
-            <Title order={3} mb="sm">
-              Есть пространство для съёмок?
-            </Title>
+            <Group gap="sm" mb="sm">
+              <ThemeIcon size="lg" variant="gradient" gradient={{ from: 'violet', to: 'purple' }} radius="xl">
+                <IconSparkles size={24} />
+              </ThemeIcon>
+              <Title order={3}>
+                Сдавайте свою локацию для съёмок
+              </Title>
+            </Group>
             <Text size="lg" c="dimmed">
-              Начните зарабатывать, сдавая свою локацию для фото и видеосъёмок
+              Превратите своё пространство в источник дохода. Крыша, лофт, заброшка или квартира — всё подойдёт!
             </Text>
           </Grid.Col>
           <Grid.Col span={{ base: 12, md: 4 }}>
             <Button
               size="lg"
               fullWidth
+              variant="gradient"
+              gradient={{ from: 'violet', to: 'purple' }}
               onClick={() => navigate('/host/listings/create')}
+              leftSection={<IconPhoto size={20} />}
             >
-              Стать хостом
+              Разместить локацию
             </Button>
           </Grid.Col>
         </Grid>

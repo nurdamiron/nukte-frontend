@@ -98,15 +98,15 @@ axiosInstance.interceptors.response.use(
       const refreshToken = localStorage.getItem('refreshToken');
 
       if (!refreshToken) {
-        // No refresh token, redirect to login
+        // No refresh token, clear tokens
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
-        window.location.href = '/login';
+        localStorage.removeItem('user');
         return Promise.reject(error);
       }
 
       try {
-        const response = await axios.post(`${API_CONFIG.BASE_URL}/auth/refresh`, {
+        const response = await axios.post(`${API_CONFIG.BASE_URL}/auth/refresh-token`, {
           refreshToken,
         });
 
@@ -123,7 +123,7 @@ axiosInstance.interceptors.response.use(
         processQueue(refreshError, null);
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
-        window.location.href = '/login';
+        localStorage.removeItem('user');
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

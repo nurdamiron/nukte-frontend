@@ -2,7 +2,7 @@ import { Container, Grid, Image, Text, Title, Badge, Group, Stack, Button, Card,
 import { useDisclosure } from '@mantine/hooks';
 import { DatePicker } from '@mantine/dates';
 import { Carousel } from '@mantine/carousel';
-import { IconMapPin, IconStar, IconRuler, IconUsers, IconCar, IconWifi, IconBath, IconToolsKitchen2, IconCheck, IconShare, IconHeart, IconMessage, IconCalendar, IconClock, IconShieldCheck, IconFileDescription, IconAlertCircle, IconParking, IconBolt, IconAirConditioning, IconElevator } from '@tabler/icons-react';
+import { IconMapPin, IconStar, IconRuler, IconUsers, IconCar, IconWifi, IconBath, IconToolsKitchen2, IconCheck, IconShare, IconHeart, IconMessage, IconCalendar, IconClock, IconShieldCheck, IconFileDescription, IconAlertCircle, IconParking, IconBolt, IconAirConditioning, IconElevator, IconCamera, IconVideo, IconBulb, IconDrone, IconSun, IconMoon, IconCalendarWeek, IconSparkles, IconMusic, IconCameraPlus } from '@tabler/icons-react';
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -36,6 +36,65 @@ const amenityLabels: Record<string, string> = {
   elevator: 'Лифт',
 };
 
+// Filming equipment icon mapping
+const equipmentIcons: Record<string, any> = {
+  professional_cameras: IconCamera,
+  lighting_equipment: IconBulb,
+  drones: IconDrone,
+  tripods: IconCameraPlus,
+  sound_equipment: IconMusic,
+  generators: IconBolt,
+  smoke_machines: IconSparkles,
+  green_screen: IconCheck,
+};
+
+// Filming equipment label mapping
+const equipmentLabels: Record<string, string> = {
+  professional_cameras: 'Профессиональные камеры',
+  lighting_equipment: 'Осветительное оборудование',
+  drones: 'Дроны',
+  tripods: 'Штативы',
+  sound_equipment: 'Звуковое оборудование',
+  generators: 'Генераторы',
+  smoke_machines: 'Дым-машины',
+  green_screen: 'Хромакей',
+};
+
+// Shooting type labels
+const shootingTypeLabels: Record<string, string> = {
+  photo: 'Фотосессия',
+  video: 'Видеосъёмка',
+  cinema: 'Кино',
+  commercial: 'Реклама',
+  fashion: 'Мода',
+  music_video: 'Музыкальный клип',
+  documentary: 'Документальный фильм',
+};
+
+// Time restrictions labels
+const timeRestrictionsLabels: Record<string, string> = {
+  daytime_only: 'Только днём',
+  nighttime_only: 'Только ночью',
+  weekends_only: 'Только выходные',
+  no_restrictions: 'Без ограничений',
+};
+
+// Category labels
+const categoryLabels: Record<string, string> = {
+  urban: 'Городская локация',
+  nature: 'Природа',
+  industrial: 'Индустриальная',
+  abandoned: 'Заброшенное место',
+  rooftop: 'Крыша',
+  modern: 'Современная',
+  vintage: 'Винтажная',
+  minimalist: 'Минимализм',
+  historical: 'Историческая',
+  underground: 'Подземная',
+  water: 'У воды',
+  architectural: 'Архитектурная',
+};
+
 export function ListingDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -45,7 +104,8 @@ export function ListingDetailPage() {
     date: null as Date | null,
     startTime: '',
     endTime: '',
-    guestsCount: 1,
+    teamSize: 1,
+    shootingType: 'photo',
     message: '',
   });
 
@@ -62,7 +122,7 @@ export function ListingDetailPage() {
     onSuccess: (booking) => {
       notifications.show({
         title: 'Запрос отправлен',
-        message: 'Ваш запрос на бронирование успешно отправлен хосту',
+        message: 'Ваш запрос на бронирование успешно отправлен владельцу локации',
         color: 'green',
       });
       close();
@@ -112,8 +172,9 @@ export function ListingDetailPage() {
       date: dateStr,
       startTime: bookingData.startTime,
       endTime: bookingData.endTime,
-      guestsCount: bookingData.guestsCount,
-      guestMessage: bookingData.message,
+      teamSize: bookingData.teamSize,
+      shootingType: bookingData.shootingType,
+      filmmakerMessage: bookingData.message,
     });
   };
 
@@ -215,7 +276,11 @@ export function ListingDetailPage() {
             </Group>
             <Group gap="xs">
               <IconUsers size={20} />
-              <Text>До {listing.maxGuests} человек</Text>
+              <Text>До {listing.teamSize || listing.maxGuests} человек в команде</Text>
+            </Group>
+            <Group gap="xs">
+              <IconSparkles size={20} />
+              <Text>{categoryLabels[listing.category] || listing.category}</Text>
             </Group>
             <Group gap="xs">
               <IconStar size={20} fill="currentColor" />
@@ -228,6 +293,7 @@ export function ListingDetailPage() {
           <Tabs defaultValue="description" mb="xl">
             <Tabs.List>
               <Tabs.Tab value="description">Описание</Tabs.Tab>
+              <Tabs.Tab value="shooting">Съёмки</Tabs.Tab>
               <Tabs.Tab value="amenities">Удобства</Tabs.Tab>
               <Tabs.Tab value="rules">Правила</Tabs.Tab>
               <Tabs.Tab value="reviews">Отзывы ({listing.reviewsCount || 0})</Tabs.Tab>
@@ -237,6 +303,184 @@ export function ListingDetailPage() {
               <Text style={{ whiteSpace: 'pre-line' }}>
                 {listing.description}
               </Text>
+            </Tabs.Panel>
+
+            <Tabs.Panel value="shooting" pt="xl">
+              <Stack gap="lg">
+                {/* Разрешённые типы съёмок */}
+                {listing.allowedShootingTypes && listing.allowedShootingTypes.length > 0 && (
+                  <div>
+                    <Text fw={500} size="lg" mb="md">Разрешённые типы съёмок</Text>
+                    <Group gap="sm">
+                      {listing.allowedShootingTypes.map((type) => (
+                        <Badge key={type} variant="light" size="lg">
+                          {shootingTypeLabels[type] || type}
+                        </Badge>
+                      ))}
+                    </Group>
+                  </div>
+                )}
+
+                {/* Разрешённое оборудование */}
+                {listing.allowedEquipment && listing.allowedEquipment.length > 0 && (
+                  <div>
+                    <Text fw={500} size="lg" mb="md">Разрешённое оборудование</Text>
+                    <Grid>
+                      {listing.allowedEquipment.map((equipment) => {
+                        const Icon = equipmentIcons[equipment] || IconCheck;
+                        const label = equipmentLabels[equipment] || equipment;
+                        return (
+                          <Grid.Col key={equipment} span={6}>
+                            <Group gap="sm">
+                              <ThemeIcon variant="light" size="lg" radius="md" color="violet">
+                                <Icon size={20} />
+                              </ThemeIcon>
+                              <Text>{label}</Text>
+                            </Group>
+                          </Grid.Col>
+                        );
+                      })}
+                    </Grid>
+                  </div>
+                )}
+
+                {/* Временные ограничения */}
+                {listing.timeRestrictions && (
+                  <div>
+                    <Text fw={500} size="lg" mb="md">Временные ограничения</Text>
+                    <Group gap="sm">
+                      {listing.timeRestrictions.day && (
+                        <Badge variant="outline" size="md">
+                          Дневная съёмка
+                        </Badge>
+                      )}
+                      {listing.timeRestrictions.night && (
+                        <Badge variant="outline" size="md">
+                          Ночная съёмка
+                        </Badge>
+                      )}
+                      {listing.timeRestrictions.weekend && (
+                        <Badge variant="outline" size="md">
+                          Съёмка в выходные
+                        </Badge>
+                      )}
+                      {!listing.timeRestrictions.day && !listing.timeRestrictions.night && !listing.timeRestrictions.weekend && (
+                        <Badge variant="outline" size="md">
+                          Без ограничений
+                        </Badge>
+                      )}
+                    </Group>
+                  </div>
+                )}
+
+                {/* Технические характеристики */}
+                <div>
+                  <Text fw={500} size="lg" mb="md">Технические характеристики</Text>
+                  <Grid>
+                    {listing.hasElectricity && (
+                      <Grid.Col span={6}>
+                        <Group gap="sm">
+                          <ThemeIcon variant="light" size="lg" radius="md" color="yellow">
+                            <IconBolt size={20} />
+                          </ThemeIcon>
+                          <Text>Электричество</Text>
+                        </Group>
+                      </Grid.Col>
+                    )}
+                    {listing.hasWifi && (
+                      <Grid.Col span={6}>
+                        <Group gap="sm">
+                          <ThemeIcon variant="light" size="lg" radius="md" color="blue">
+                            <IconWifi size={20} />
+                          </ThemeIcon>
+                          <Text>Wi-Fi</Text>
+                        </Group>
+                      </Grid.Col>
+                    )}
+                    {listing.hasParking && (
+                      <Grid.Col span={6}>
+                        <Group gap="sm">
+                          <ThemeIcon variant="light" size="lg" radius="md" color="teal">
+                            <IconParking size={20} />
+                          </ThemeIcon>
+                          <Text>Парковка</Text>
+                        </Group>
+                      </Grid.Col>
+                    )}
+                    {listing.hasDressingRoom && (
+                      <Grid.Col span={6}>
+                        <Group gap="sm">
+                          <ThemeIcon variant="light" size="lg" radius="md" color="pink">
+                            <IconUsers size={20} />
+                          </ThemeIcon>
+                          <Text>Гримёрная</Text>
+                        </Group>
+                      </Grid.Col>
+                    )}
+                    {listing.hasCatering && (
+                      <Grid.Col span={6}>
+                        <Group gap="sm">
+                          <ThemeIcon variant="light" size="lg" radius="md" color="orange">
+                            <IconToolsKitchen2 size={20} />
+                          </ThemeIcon>
+                          <Text>Кейтеринг</Text>
+                        </Group>
+                      </Grid.Col>
+                    )}
+                  </Grid>
+                </div>
+
+                {/* Дополнительная информация */}
+                <div>
+                  <Text fw={500} size="lg" mb="md">Дополнительная информация</Text>
+                  <Stack gap="sm">
+                    {listing.isWeatherDependent && (
+                      <Group gap="sm">
+                        <ThemeIcon variant="light" size="sm" radius="md" color="cyan">
+                          <IconSun size={16} />
+                        </ThemeIcon>
+                        <Text size="sm">Зависит от погодных условий</Text>
+                      </Group>
+                    )}
+                    {listing.requiresPermit && (
+                      <Group gap="sm">
+                        <ThemeIcon variant="light" size="sm" radius="md" color="red">
+                          <IconFileDescription size={16} />
+                        </ThemeIcon>
+                        <Text size="sm">Требуется разрешение</Text>
+                      </Group>
+                    )}
+                    {listing.requiresInsurance && (
+                      <Group gap="sm">
+                        <ThemeIcon variant="light" size="sm" radius="md" color="indigo">
+                          <IconShieldCheck size={16} />
+                        </ThemeIcon>
+                        <Text size="sm">Требуется страховка</Text>
+                      </Group>
+                    )}
+                    {listing.noiseLevel && (
+                      <Group gap="sm">
+                        <ThemeIcon variant="light" size="sm" radius="md" color="grape">
+                          <IconMusic size={16} />
+                        </ThemeIcon>
+                        <Text size="sm">
+                          Уровень шума: {listing.noiseLevel === 'quiet' ? 'тихо' : listing.noiseLevel === 'moderate' ? 'умеренный' : 'шумно'}
+                        </Text>
+                      </Group>
+                    )}
+                  </Stack>
+                </div>
+
+                {/* Дополнительные услуги */}
+                {listing.additionalServices && (
+                  <div>
+                    <Text fw={500} size="lg" mb="md">Дополнительные услуги</Text>
+                    <Text style={{ whiteSpace: 'pre-line' }}>
+                      {listing.additionalServices}
+                    </Text>
+                  </div>
+                )}
+              </Stack>
             </Tabs.Panel>
 
             <Tabs.Panel value="amenities" pt="xl">
@@ -334,23 +578,23 @@ export function ListingDetailPage() {
 
               <Divider />
 
-              {/* Host Info */}
+              {/* Owner Info */}
               <Group justify="space-between">
                 <Group>
-                  <Avatar src={listing.host?.avatar} radius="xl" size="md">
-                    {listing.host?.name?.charAt(0).toUpperCase()}
+                  <Avatar src={listing.owner?.avatar} radius="xl" size="md">
+                    {listing.owner?.name?.charAt(0).toUpperCase()}
                   </Avatar>
                   <div>
                     <Group gap={4}>
-                      <Text fw={500}>{listing.host?.name || 'Хост'}</Text>
-                      {listing.host?.verified && (
+                      <Text fw={500}>{listing.owner?.name || 'Владелец локации'}</Text>
+                      {listing.owner?.verified && (
                         <ThemeIcon size="sm" radius="xl" color="blue" variant="light">
                           <IconShieldCheck size={14} />
                         </ThemeIcon>
                       )}
                     </Group>
                     <Text size="xs" c="dimmed">
-                      Хост с {listing.host?.createdAt ? new Date(listing.host.createdAt).toLocaleDateString('ru-KZ', { year: 'numeric', month: 'long' }) : 'недавно'}
+                      Владелец с {listing.owner?.createdAt ? new Date(listing.owner.createdAt).toLocaleDateString('ru-KZ', { year: 'numeric', month: 'long' }) : 'недавно'}
                     </Text>
                   </div>
                 </Group>
@@ -389,7 +633,13 @@ export function ListingDetailPage() {
             <Paper p="sm" withBorder radius="md">
               <Group gap="xs">
                 <IconFileDescription size={20} />
-                <Text size="sm">Помощь с пермитами</Text>
+                <Text size="sm">Помощь с пермитами для съёмок</Text>
+              </Group>
+            </Paper>
+            <Paper p="sm" withBorder radius="md">
+              <Group gap="xs">
+                <IconSparkles size={20} />
+                <Text size="sm">Поддержка креативных проектов</Text>
               </Group>
             </Paper>
           </Stack>
@@ -445,17 +695,34 @@ export function ListingDetailPage() {
           </Grid>
 
           <NumberInput
-            label="Количество человек"
+            label="Размер команды"
             min={1}
-            max={listing.maxGuests}
-            value={bookingData.guestsCount}
-            onChange={(value) => setBookingData({ ...bookingData, guestsCount: Number(value) })}
+            max={listing.teamSize || listing.maxGuests}
+            value={bookingData.teamSize}
+            onChange={(value) => setBookingData({ ...bookingData, teamSize: Number(value) })}
+            required
+          />
+
+          <Select
+            label="Тип съёмки"
+            placeholder="Выберите тип съёмки"
+            data={[
+              { value: 'photo', label: 'Фотосессия' },
+              { value: 'video', label: 'Видеосъёмка' },
+              { value: 'cinema', label: 'Кино' },
+              { value: 'commercial', label: 'Реклама' },
+              { value: 'fashion', label: 'Мода' },
+              { value: 'music_video', label: 'Музыкальный клип' },
+              { value: 'documentary', label: 'Документальный фильм' },
+            ]}
+            value={bookingData.shootingType}
+            onChange={(value) => setBookingData({ ...bookingData, shootingType: value || 'photo' })}
             required
           />
 
           <Textarea
-            label="Сообщение хосту"
-            placeholder="Расскажите о вашем проекте..."
+            label="Сообщение владельцу локации"
+            placeholder="Расскажите о вашем проекте, концепции съёмки, особых требованиях..."
             minRows={3}
             value={bookingData.message}
             onChange={(e) => setBookingData({ ...bookingData, message: e.target.value })}

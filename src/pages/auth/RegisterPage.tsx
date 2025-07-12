@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { RegisterRequest } from '../../types/api.types';
+import { PasswordStrengthMeter } from '../../components/auth/PasswordStrengthMeter';
 
 interface RegisterFormValues extends RegisterRequest {
   confirmPassword: string;
@@ -25,14 +26,21 @@ export function RegisterPage() {
       phone: '',
       password: '',
       confirmPassword: '',
-      role: 'guest',
+      role: 'filmmaker',
       agreeToTerms: false,
     },
     validate: {
       name: (value) => (value.length >= 2 ? null : 'Имя должно быть минимум 2 символа'),
-      email: (value) => (/^\S+@\S+$/.test(value) ? null : 'Неверный формат email'),
+      email: (value) => (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? null : 'Неверный формат email'),
       phone: (value) => (!value || value.length >= 10 ? null : 'Неверный формат телефона'),
-      password: (value) => (value.length >= 6 ? null : 'Пароль должен быть минимум 6 символов'),
+      password: (value) => {
+        if (value.length < 8) return 'Пароль должен быть минимум 8 символов';
+        if (!/(?=.*[a-z])/.test(value)) return 'Пароль должен содержать строчные буквы';
+        if (!/(?=.*[A-Z])/.test(value)) return 'Пароль должен содержать заглавные буквы';
+        if (!/(?=.*\d)/.test(value)) return 'Пароль должен содержать цифры';
+        if (!/(?=.*[@$!%*?&])/.test(value)) return 'Пароль должен содержать специальные символы (@$!%*?&)';
+        return null;
+      },
       confirmPassword: (value, values) => 
         value === values.password ? null : 'Пароли не совпадают',
       agreeToTerms: (value) => (value ? null : 'Необходимо принять условия'),
@@ -149,6 +157,10 @@ export function RegisterPage() {
                 disabled={loading}
                 {...form.getInputProps('password')}
               />
+              
+              {form.values.password && (
+                <PasswordStrengthMeter password={form.values.password} />
+              )}
 
               <PasswordInput
                 label="Подтвердите пароль"
@@ -165,9 +177,21 @@ export function RegisterPage() {
                 {...form.getInputProps('role')}
               >
                 <Stack gap="xs" mt="xs">
-                  <Radio value="guest" label="Я ищу локации для съёмок" disabled={loading} />
-                  <Radio value="host" label="Я хочу сдавать локации" disabled={loading} />
-                  <Radio value="both" label="И то, и другое" disabled={loading} />
+                  <Radio 
+                    value="filmmaker" 
+                    label="Я снимаю (фотограф, режиссёр, продюсер)" 
+                    disabled={loading} 
+                  />
+                  <Radio 
+                    value="location_owner" 
+                    label="У меня есть локация для съёмок" 
+                    disabled={loading} 
+                  />
+                  <Radio 
+                    value="both" 
+                    label="И то, и другое" 
+                    disabled={loading} 
+                  />
                 </Stack>
               </Radio.Group>
 

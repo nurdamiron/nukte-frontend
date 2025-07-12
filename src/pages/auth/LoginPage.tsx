@@ -22,8 +22,8 @@ export function LoginPage() {
       password: '',
     },
     validate: {
-      email: (value) => (/^\S+@\S+$/.test(value) ? null : 'Неверный формат email'),
-      password: (value) => (value.length >= 6 ? null : 'Пароль должен быть минимум 6 символов'),
+      email: (value) => (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? null : 'Неверный формат email'),
+      password: (value) => (value.length >= 1 ? null : 'Введите пароль'),
     },
   });
 
@@ -57,17 +57,36 @@ export function LoginPage() {
 
   return (
     <Container size={420} my={80}>
-      <Title ta="center" order={2} mb="md">
-        С возвращением!
-      </Title>
-      <Text c="dimmed" size="sm" ta="center" mb={30}>
-        Еще нет аккаунта?{' '}
-        <Anchor size="sm" onClick={() => navigate('/register')}>
-          Зарегистрироваться
-        </Anchor>
-      </Text>
+      <Stack align="center" mb="xl">
+        <Title ta="center" order={1} mb="md" style={{ 
+          background: 'linear-gradient(45deg, var(--mantine-color-violet-6), var(--mantine-color-purple-6))',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text',
+          fontSize: '2.5rem',
+          fontWeight: 800,
+        }}>
+          С возвращением!
+        </Title>
+        <Text c="dimmed" size="lg" ta="center" mb={30} style={{ maxWidth: 300 }}>
+          Еще нет аккаунта?{' '}
+          <Anchor size="lg" onClick={() => navigate('/register')} style={{ fontWeight: 600 }}>
+            Зарегистрироваться
+          </Anchor>
+        </Text>
+      </Stack>
 
-      <Paper withBorder shadow="md" p={30} radius="md">
+      <Paper 
+        withBorder 
+        shadow="xl" 
+        p={40} 
+        radius="xl"
+        style={{
+          backdropFilter: 'blur(20px)',
+          background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05))',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+        }}
+      >
         <Stack gap="md">
           {error && (
             <Alert icon={<IconAlertCircle size={16} />} color="red" variant="light">
@@ -77,18 +96,44 @@ export function LoginPage() {
 
           <Button
             fullWidth
-            variant="default"
+            variant="light"
             leftSection={<IconBrandGoogle size={18} />}
             disabled={loading}
+            size="md"
+            radius="xl"
+            style={{
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 8px 25px rgba(0, 0, 0, 0.15)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '';
+            }}
           >
             Войти через Google
           </Button>
 
           <Button
             fullWidth
-            variant="default"
+            variant="light"
             leftSection={<IconPhone size={18} />}
             disabled={loading}
+            size="md"
+            radius="xl"
+            style={{
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 8px 25px rgba(0, 0, 0, 0.15)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '';
+            }}
           >
             Войти по номеру телефона
           </Button>
@@ -96,12 +141,14 @@ export function LoginPage() {
           <Divider label="или" labelPosition="center" my="sm" />
 
           <form onSubmit={form.onSubmit(handleSubmit)}>
-            <Stack gap="md">
+            <Stack gap="lg">
               <TextInput
                 label="Email"
                 placeholder="your@email.com"
                 leftSection={<IconMail size={16} />}
                 disabled={loading}
+                size="md"
+                radius="xl"
                 {...form.getInputProps('email')}
               />
 
@@ -110,6 +157,8 @@ export function LoginPage() {
                 placeholder="Ваш пароль"
                 leftSection={<IconLock size={16} />}
                 disabled={loading}
+                size="md"
+                radius="xl"
                 {...form.getInputProps('password')}
               />
 
@@ -117,6 +166,7 @@ export function LoginPage() {
                 <Anchor
                   onClick={() => navigate('/forgot-password')}
                   size="sm"
+                  style={{ fontWeight: 600 }}
                 >
                   Забыли пароль?
                 </Anchor>
@@ -128,6 +178,21 @@ export function LoginPage() {
                 type="submit"
                 loading={loading}
                 disabled={loading}
+                size="lg"
+                radius="xl"
+                variant="gradient"
+                gradient={{ from: 'violet', to: 'purple', deg: 45 }}
+                style={{
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 8px 25px rgba(139, 69, 199, 0.35)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '';
+                }}
               >
                 Войти
               </Button>

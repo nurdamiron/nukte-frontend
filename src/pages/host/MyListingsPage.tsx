@@ -1,62 +1,77 @@
 import { Container, Title, Group, Button, Grid, Card, Image, Text, Badge, Stack, Menu, ActionIcon, Tabs, NumberFormatter, Progress, Paper, ThemeIcon, SimpleGrid } from '@mantine/core';
-import { IconPlus, IconDots, IconEdit, IconEye, IconTrash, IconCalendar, IconEyeOff, IconTrendingUp, IconCurrencyDollar, IconUsers, IconStar } from '@tabler/icons-react';
+import { IconPlus, IconDots, IconEdit, IconEye, IconTrash, IconCalendar, IconEyeOff, IconTrendingUp, IconCurrencyDollar, IconUsers, IconStar, IconVideo, IconCamera, IconSparkles } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 
 const mockListings = [
   {
     id: 1,
-    title: 'Современная студия в центре',
+    title: 'Лофт для фотосессий в центре',
     image: 'https://images.unsplash.com/photo-1565953522043-baea26b83b7e?w=400',
     status: 'active',
     views: 234,
-    bookings: 12,
+    shootings: 12,
     revenue: 600000,
     rating: 4.8,
     reviews: 12,
+    category: 'urban',
+    allowedTypes: ['photo', 'video', 'commercial'],
   },
   {
     id: 2,
-    title: 'Лофт с панорамными окнами',
+    title: 'Крыша с панорамным видом',
     image: 'https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?w=400',
     status: 'paused',
     views: 189,
-    bookings: 8,
+    shootings: 8,
     revenue: 640000,
     rating: 4.9,
     reviews: 8,
+    category: 'rooftop',
+    allowedTypes: ['photo', 'cinema', 'music_video'],
   },
   {
     id: 3,
-    title: 'Загородный дом с садом',
+    title: 'Заброшенный завод для съёмок',
     image: 'https://images.unsplash.com/photo-1416331108676-a22ccb276e35?w=400',
     status: 'active',
     views: 156,
-    bookings: 5,
+    shootings: 5,
     revenue: 600000,
     rating: 5.0,
     reviews: 5,
+    category: 'abandoned',
+    allowedTypes: ['video', 'cinema', 'documentary'],
   },
 ];
 
 const stats = [
   { title: 'Всего просмотров', value: 579, icon: IconEye, color: 'blue' },
-  { title: 'Бронирований', value: 25, icon: IconCalendar, color: 'teal' },
+  { title: 'Съёмок проведено', value: 25, icon: IconVideo, color: 'teal' },
   { title: 'Общий доход', value: '1 840 000 ₸', icon: IconCurrencyDollar, color: 'green' },
   { title: 'Средний рейтинг', value: '4.9', icon: IconStar, color: 'yellow' },
 ];
 
 export function MyListingsPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<string | null>('all');
 
   return (
     <Container size="xl" my="xl">
       <Group justify="space-between" mb="xl">
-        <Title order={1}>Мои локации</Title>
+        <Group gap="md">
+          <ThemeIcon size="xl" variant="gradient" gradient={{ from: 'violet', to: 'purple' }} radius="xl">
+            <IconSparkles size={28} />
+          </ThemeIcon>
+          <Title order={1}>Мои локации для съёмок</Title>
+        </Group>
         <Button
           leftSection={<IconPlus size={18} />}
           onClick={() => navigate('/host/listings/create')}
+          variant="gradient"
+          gradient={{ from: 'violet', to: 'purple', deg: 45 }}
         >
           Добавить локацию
         </Button>
@@ -133,7 +148,7 @@ export function MyListingsPage() {
                           Редактировать
                         </Menu.Item>
                         <Menu.Item leftSection={<IconCalendar size={14} />}>
-                          Календарь
+                          Календарь съёмок
                         </Menu.Item>
                         <Menu.Item 
                           leftSection={listing.status === 'active' ? <IconEyeOff size={14} /> : <IconEye size={14} />}
@@ -153,6 +168,19 @@ export function MyListingsPage() {
                       {listing.title}
                     </Text>
 
+                    <Group gap="xs">
+                      {listing.allowedTypes.map((type) => (
+                        <Badge key={type} size="xs" variant="light">
+                          {type === 'photo' ? 'Фото' : 
+                           type === 'video' ? 'Видео' :
+                           type === 'cinema' ? 'Кино' :
+                           type === 'commercial' ? 'Реклама' :
+                           type === 'music_video' ? 'Клип' :
+                           type === 'documentary' ? 'Док' : type}
+                        </Badge>
+                      ))}
+                    </Group>
+
                     <Grid gutter="xs">
                       <Grid.Col span={4}>
                         <Text size="xs" c="dimmed">Просмотры</Text>
@@ -162,10 +190,10 @@ export function MyListingsPage() {
                         </Group>
                       </Grid.Col>
                       <Grid.Col span={4}>
-                        <Text size="xs" c="dimmed">Брони</Text>
+                        <Text size="xs" c="dimmed">Съёмок</Text>
                         <Group gap={4}>
-                          <IconCalendar size={14} />
-                          <Text size="sm" fw={500}>{listing.bookings}</Text>
+                          <IconVideo size={14} />
+                          <Text size="sm" fw={500}>{listing.shootings}</Text>
                         </Group>
                       </Grid.Col>
                       <Grid.Col span={4}>

@@ -164,10 +164,10 @@ export function BookingsPage() {
 
             <Group justify="space-between" align="center" wrap="wrap" gap="xs">
               <Group gap="xs">
-                <Avatar src={booking.host?.avatar} size="sm" radius="xl">
-                  {booking.host?.name?.charAt(0).toUpperCase()}
+                <Avatar src={booking.locationOwner?.avatar} size="sm" radius="xl">
+                  {booking.locationOwner?.name?.charAt(0).toUpperCase()}
                 </Avatar>
-                <Text size="sm">{booking.host?.name || 'Хост'}</Text>
+                <Text size="sm">{booking.locationOwner?.name || 'Владелец локации'}</Text>
               </Group>
 
               <Group gap="xs">

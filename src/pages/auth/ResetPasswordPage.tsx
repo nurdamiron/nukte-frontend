@@ -5,6 +5,7 @@ import { IconLock, IconAlertCircle, IconCheck } from '@tabler/icons-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { authService } from '../../services/auth.service';
+import { PasswordStrengthMeter } from '../../components/auth/PasswordStrengthMeter';
 
 export function ResetPasswordPage() {
   const navigate = useNavigate();
@@ -29,7 +30,14 @@ export function ResetPasswordPage() {
       confirmPassword: '',
     },
     validate: {
-      password: (value: string) => (value.length >= 6 ? null : 'Пароль должен быть минимум 6 символов'),
+      password: (value: string) => {
+        if (value.length < 8) return 'Пароль должен быть минимум 8 символов';
+        if (!/(?=.*[a-z])/.test(value)) return 'Пароль должен содержать строчные буквы';
+        if (!/(?=.*[A-Z])/.test(value)) return 'Пароль должен содержать заглавные буквы';
+        if (!/(?=.*\d)/.test(value)) return 'Пароль должен содержать цифры';
+        if (!/(?=.*[@$!%*?&])/.test(value)) return 'Пароль должен содержать специальные символы (@$!%*?&)';
+        return null;
+      },
       confirmPassword: (value: string, values: { password: string; confirmPassword: string }) => 
         value === values.password ? null : 'Пароли не совпадают',
     },
@@ -162,6 +170,10 @@ export function ResetPasswordPage() {
                 disabled={loading}
                 {...form.getInputProps('password')}
               />
+              
+              {form.values.password && (
+                <PasswordStrengthMeter password={form.values.password} />
+              )}
 
               <PasswordInput
                 label="Подтвердите новый пароль"

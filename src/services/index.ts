@@ -2,6 +2,7 @@ export { default as authService } from './auth.service';
 export { default as listingsService } from './listings.service';
 export { default as bookingsService } from './bookings.service';
 export { default as messagesService } from './messages.service';
+export { default as reviewService } from './review.service';
 
 // Re-export types that are commonly used with services
 export type {
@@ -25,6 +26,9 @@ export type {
   // Message types
   Message,
   Conversation,
+  
+  // Review types
+  Review,
   
   // Common types
   ApiResponse,

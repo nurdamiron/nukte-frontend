@@ -1,23 +1,52 @@
-import { Container, Grid, Card, Image, Text, Badge, Group, Stack, Button, TextInput, Select, RangeSlider, Checkbox, Paper, Title, Pagination, ActionIcon, Drawer, NumberInput, MultiSelect, SegmentedControl, Center, Loader, Alert } from '@mantine/core';
+import { Container, Grid, Card, Image, Text, Badge, Group, Stack, Button, TextInput, Select, RangeSlider, Checkbox, Paper, Title, Pagination, ActionIcon, Drawer, NumberInput, MultiSelect, SegmentedControl, Center, Loader, Alert, Divider, ThemeIcon } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { useDebouncedValue } from '@mantine/hooks';
-import { IconSearch, IconFilter, IconMapPin, IconStar, IconAdjustments, IconMap, IconList, IconAlertCircle } from '@tabler/icons-react';
+import { IconSearch, IconFilter, IconMapPin, IconStar, IconAdjustments, IconMap, IconList, IconAlertCircle, IconVideo, IconCamera, IconClock, IconBolt, IconUsers, IconSparkles } from '@tabler/icons-react';
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { listingsService } from '../../services/listings.service';
-import type { SearchParams, Listing } from '../../types/api.types';
+import type { SearchParams, Listing, ShootingType } from '../../types/api.types';
 
 const ITEMS_PER_PAGE = 12;
 
 const cities = ['Все города', 'Алматы', 'Астана', 'Шымкент', 'Караганда', 'Актобе'];
 const categories = [
-  { value: 'all', label: 'Все категории' },
-  { value: 'studio', label: 'Студии' },
-  { value: 'outdoor', label: 'Открытые пространства' },
+  { value: 'all', label: 'Все локации' },
+  { value: 'urban', label: 'Городские' },
+  { value: 'nature', label: 'Природа' },
   { value: 'industrial', label: 'Индустриальные' },
-  { value: 'residential', label: 'Жилые помещения' },
-  { value: 'commercial', label: 'Коммерческие' },
+  { value: 'abandoned', label: 'Заброшенные' },
+  { value: 'rooftop', label: 'Крыши' },
+  { value: 'modern', label: 'Современные' },
+  { value: 'vintage', label: 'Винтажные' },
+  { value: 'minimalist', label: 'Минимализм' },
+];
+
+const shootingTypes = [
+  { value: 'photo', label: 'Фотосессия' },
+  { value: 'video', label: 'Видеосъёмка' },
+  { value: 'cinema', label: 'Кино' },
+  { value: 'commercial', label: 'Реклама' },
+  { value: 'fashion', label: 'Мода' },
+  { value: 'music_video', label: 'Клип' },
+  { value: 'documentary', label: 'Документалка' },
+];
+
+const equipmentOptions = [
+  { value: 'professional_cameras', label: 'Профессиональные камеры' },
+  { value: 'lighting_equipment', label: 'Световое оборудование' },
+  { value: 'drones', label: 'Дроны' },
+  { value: 'tripods', label: 'Штативы' },
+  { value: 'sound_equipment', label: 'Звуковое оборудование' },
+  { value: 'green_screen', label: 'Хромакей' },
+];
+
+const timeOptions = [
+  { value: 'daytime_only', label: 'Только днём' },
+  { value: 'nighttime_only', label: 'Только ночью' },
+  { value: 'weekends_only', label: 'Только выходные' },
+  { value: 'no_restrictions', label: 'Без ограничений' },
 ];
 
 const amenitiesOptions = [
@@ -46,7 +75,15 @@ export function ListingsPage() {
     category: searchParams.get('category') || '',
     priceRange: [0, 200000] as [number, number],
     area: [0, 500] as [number, number],
+    teamSize: [1, 50] as [number, number],
     amenities: [] as string[],
+    shootingTypes: [] as ShootingType[],
+    allowedEquipment: [] as string[],
+    timeRestrictions: [] as string[],
+    hasElectricity: false,
+    hasWifi: false,
+    hasParking: false,
+    requiresPermit: false,
   });
 
   // Debounce search input
@@ -70,7 +107,16 @@ export function ListingsPage() {
     if (filters.priceRange[1] < 200000) params.priceMax = filters.priceRange[1];
     if (filters.area[0] > 0) params.areaMin = filters.area[0];
     if (filters.area[1] < 500) params.areaMax = filters.area[1];
+    if (filters.teamSize[0] > 1) params.teamSizeMin = filters.teamSize[0];
+    if (filters.teamSize[1] < 50) params.teamSizeMax = filters.teamSize[1];
     if (filters.amenities.length > 0) params.amenities = filters.amenities;
+    if (filters.shootingTypes.length > 0) params.shootingTypes = filters.shootingTypes;
+    if (filters.allowedEquipment.length > 0) params.allowedEquipment = filters.allowedEquipment;
+    if (filters.timeRestrictions.length > 0) params.timeRestrictions = filters.timeRestrictions;
+    if (filters.hasElectricity) params.hasElectricity = true;
+    if (filters.hasWifi) params.hasWifi = true;
+    if (filters.hasParking) params.hasParking = true;
+    if (filters.requiresPermit) params.requiresPermit = true;
 
     return params;
   };
@@ -112,12 +158,18 @@ export function ListingsPage() {
   // Get category display name
   const getCategoryLabel = (category: string): string => {
     const categoryMap: Record<string, string> = {
-      studio: 'Студия',
-      outdoor: 'Открытое пространство',
-      industrial: 'Индустриальное',
-      residential: 'Жилое помещение',
-      commercial: 'Коммерческое',
-      event: 'Event-пространство',
+      urban: 'Городская',
+      nature: 'Природа',
+      industrial: 'Индустриальная',
+      abandoned: 'Заброшенная',
+      rooftop: 'Крыша',
+      modern: 'Современная',
+      vintage: 'Винтажная',
+      minimalist: 'Минимализм',
+      historical: 'Историческая',
+      underground: 'Подземная',
+      water: 'У воды',
+      architectural: 'Архитектурная',
     };
     return categoryMap[category] || category;
   };
@@ -126,7 +178,12 @@ export function ListingsPage() {
     <Container size="xl" my="xl">
       {/* Header */}
       <Stack gap="lg" mb="xl">
-        <Title order={1}>Найти локацию для съёмки</Title>
+        <Group gap="md">
+          <ThemeIcon size="xl" variant="gradient" gradient={{ from: 'violet', to: 'purple' }} radius="xl">
+            <IconSparkles size={28} />
+          </ThemeIcon>
+          <Title order={1}>Найти локацию для съёмки</Title>
+        </Group>
         
         {/* Search Bar */}
         <Grid gutter="sm">
@@ -154,7 +211,7 @@ export function ListingsPage() {
           <Grid.Col span={{ base: 6, md: 2 }}>
             <Select
               size="md"
-              placeholder="Категория"
+              placeholder="Тип локации"
               data={categories}
               value={filters.category}
               onChange={(value) => {
@@ -163,7 +220,22 @@ export function ListingsPage() {
               }}
             />
           </Grid.Col>
-          <Grid.Col span={{ base: 12, md: 2 }}>
+          <Grid.Col span={{ base: 6, md: 2 }}>
+            <Select
+              size="md"
+              placeholder="Тип съёмки"
+              data={[
+                { value: '', label: 'Все типы' },
+                ...shootingTypes
+              ]}
+              value={filters.shootingTypes[0] || ''}
+              onChange={(value) => {
+                setFilters({ ...filters, shootingTypes: value ? [value] : [] });
+                setCurrentPage(1);
+              }}
+            />
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, md: 1 }}>
             <Group gap="xs">
               <Button
                 size="md"
@@ -278,7 +350,7 @@ export function ListingsPage() {
                       </Text>
                     </Group>
                     <Text size="xs" c="dimmed">
-                      {listing.area} м² • до {listing.maxGuests} чел
+                      {listing.area} м² • до {listing.teamSize || listing.maxGuests} чел
                     </Text>
                   </Group>
 
@@ -380,6 +452,78 @@ export function ListingsPage() {
             />
           </div>
 
+          <div>
+            <Text size="sm" fw={500} mb="xs">
+              Размер команды
+            </Text>
+            <RangeSlider
+              min={1}
+              max={50}
+              step={1}
+              value={filters.teamSize}
+              onChange={(value) => setFilters({ ...filters, teamSize: value })}
+              marks={[
+                { value: 1, label: '1' },
+                { value: 25, label: '25' },
+                { value: 50, label: '50' },
+              ]}
+              mb="sm"
+            />
+          </div>
+
+          <Divider label="Съёмочные характеристики" />
+
+          <MultiSelect
+            label="Типы съёмок"
+            placeholder="Выберите типы съёмок"
+            data={shootingTypes}
+            value={filters.shootingTypes}
+            onChange={(value) => setFilters({ ...filters, shootingTypes: value as ShootingType[] })}
+          />
+
+          <MultiSelect
+            label="Разрешённое оборудование"
+            placeholder="Выберите оборудование"
+            data={equipmentOptions}
+            value={filters.allowedEquipment}
+            onChange={(value) => setFilters({ ...filters, allowedEquipment: value })}
+          />
+
+          <MultiSelect
+            label="Временные ограничения"
+            placeholder="Выберите ограничения"
+            data={timeOptions}
+            value={filters.timeRestrictions}
+            onChange={(value) => setFilters({ ...filters, timeRestrictions: value })}
+          />
+
+          <Divider label="Технические характеристики" />
+
+          <Stack gap="sm">
+            <Checkbox
+              label="Электричество"
+              checked={filters.hasElectricity}
+              onChange={(event) => setFilters({ ...filters, hasElectricity: event.currentTarget.checked })}
+            />
+            <Checkbox
+              label="Wi-Fi"
+              checked={filters.hasWifi}
+              onChange={(event) => setFilters({ ...filters, hasWifi: event.currentTarget.checked })}
+            />
+            <Checkbox
+              label="Парковка"
+              checked={filters.hasParking}
+              onChange={(event) => setFilters({ ...filters, hasParking: event.currentTarget.checked })}
+            />
+            <Checkbox
+              label="Требуется разрешение"
+              checked={filters.requiresPermit}
+              onChange={(event) => setFilters({ ...filters, requiresPermit: event.currentTarget.checked })}
+            />
+          </Stack>
+
+          <Divider label="Базовые удобства" />
+
           <MultiSelect
             label="Удобства"
             placeholder="Выберите удобства"
@@ -396,7 +540,15 @@ export function ListingsPage() {
                 category: '',
                 priceRange: [0, 200000],
                 area: [0, 500],
+                teamSize: [1, 50],
                 amenities: [],
+                shootingTypes: [],
+                allowedEquipment: [],
+                timeRestrictions: [],
+                hasElectricity: false,
+                hasWifi: false,
+                hasParking: false,
+                requiresPermit: false,
               });
               close();
             }}>

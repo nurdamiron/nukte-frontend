@@ -1,7 +1,8 @@
-import { Container, Grid, Paper, Avatar, Text, Group, Button, Stack, Tabs, TextInput, Textarea, Select, FileButton, Badge, Progress, Card, ThemeIcon, Switch, Divider, ActionIcon, PasswordInput } from '@mantine/core';
+import { Container, Grid, Paper, Avatar, Text, Group, Button, Stack, Tabs, TextInput, Textarea, Select, FileButton, Badge, Progress, Card, ThemeIcon, Switch, Divider, ActionIcon, PasswordInput, Image } from '@mantine/core';
 import { useForm } from '@mantine/form';
-import { IconUser, IconShieldCheck, IconBuilding, IconCalendar, IconStar, IconCamera, IconEdit, IconMail, IconPhone, IconMapPin, IconBrandGoogle, IconBell, IconLock, IconCreditCard, IconFileDescription } from '@tabler/icons-react';
+import { IconUser, IconShieldCheck, IconBuilding, IconCalendar, IconStar, IconCamera, IconEdit, IconMail, IconPhone, IconMapPin, IconBrandGoogle, IconBell, IconLock, IconCreditCard, IconFileDescription, IconVideo, IconSparkles } from '@tabler/icons-react';
 import { useState } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 
 const mockUser = {
   id: 1,
@@ -9,32 +10,42 @@ const mockUser = {
   email: 'daniyar@example.com',
   phone: '+7 (777) 123-45-67',
   avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
-  role: 'both', // guest, host, both
+  role: 'both', // filmmaker, location_owner, both
   verified: false,
   joinedDate: '2023-01-15',
   location: 'Алматы, Казахстан',
-  bio: 'Фотограф и видеограф с 5-летним опытом. Владелец нескольких студий в Алматы.',
+  bio: 'Фотограф и видеограф с 5-летним опытом. Владелец нескольких съёмочных локаций в Алматы.',
   stats: {
-    asHost: {
+    asLocationOwner: {
       listings: 3,
       bookings: 45,
       revenue: 5240000,
       rating: 4.9,
       reviews: 28,
     },
-    asGuest: {
+    asFilmmaker: {
       bookings: 12,
       spent: 840000,
       reviews: 8,
+      shootings: 25,
     },
   },
   verificationStatus: 'pending', // none, pending, verified
   verificationDocuments: ['ID uploaded', 'Selfie uploaded'],
+  portfolio: [
+    'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=400',
+    'https://images.unsplash.com/photo-1542038784456-1ea8e935640e?w=400',
+    'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=400',
+  ],
 };
 
 export function ProfilePage() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<string | null>('profile');
   const [avatar, setAvatar] = useState<File | null>(null);
+  
+  // Используем данные пользователя или mockUser
+  const userData = user || mockUser;
   
   const form = useForm({
     initialValues: {
@@ -65,7 +76,7 @@ export function ProfilePage() {
             <Stack align="center" mb="xl">
               <div style={{ position: 'relative' }}>
                 <Avatar
-                  src={avatar ? URL.createObjectURL(avatar) : mockUser.avatar}
+                  src={avatar ? URL.createObjectURL(avatar) : userData.avatar}
                   size={120}
                   radius={120}
                 />
@@ -88,19 +99,34 @@ export function ProfilePage() {
               
               <div style={{ textAlign: 'center' }}>
                 <Group gap={4} justify="center">
-                  <Text size="xl" fw={600}>{mockUser.name}</Text>
-                  {mockUser.verified && (
+                  <Text size="xl" fw={600}>{userData.name}</Text>
+                  {userData.verified && (
                     <ThemeIcon size="sm" radius="xl" color="blue" variant="light">
                       <IconShieldCheck size={14} />
                     </ThemeIcon>
                   )}
                 </Group>
                 <Text size="sm" c="dimmed">
-                  Участник с {new Date(mockUser.joinedDate).toLocaleDateString('ru-RU', { 
+                  Участник с {new Date(userData.joinedDate || (userData as any).createdAt || '2023-01-01').toLocaleDateString('ru-RU', { 
                     month: 'long', 
                     year: 'numeric' 
                   })}
                 </Text>
+                {userData.role === 'filmmaker' && (
+                  <Badge leftSection={<IconCamera size={12} />} variant="light" color="violet">
+                    Фотограф/Режиссёр
+                  </Badge>
+                )}
+                {userData.role === 'location_owner' && (
+                  <Badge leftSection={<IconBuilding size={12} />} variant="light" color="blue">
+                    Владелец локации
+                  </Badge>
+                )}
+                {userData.role === 'both' && (
+                  <Badge leftSection={<IconSparkles size={12} />} variant="light" color="grape">
+                    Креатор и владелец
+                  </Badge>
+                )}
               </div>
 
               {mockUser.verificationStatus === 'pending' && (
@@ -116,52 +142,56 @@ export function ProfilePage() {
             </Stack>
 
             {/* Stats */}
-            {mockUser.role !== 'guest' && (
+            {(userData.role === 'location_owner' || userData.role === 'both') && (
               <div>
-                <Text size="sm" fw={600} mb="xs">Статистика хоста</Text>
+                <Text size="sm" fw={600} mb="xs">Как владелец локаций</Text>
                 <Stack gap="xs" mb="md">
                   <Group justify="space-between">
                     <Text size="sm" c="dimmed">Локаций</Text>
-                    <Text size="sm" fw={500}>{mockUser.stats.asHost.listings}</Text>
+                    <Text size="sm" fw={500}>{(userData as any).stats?.asLocationOwner?.listings || 0}</Text>
                   </Group>
                   <Group justify="space-between">
-                    <Text size="sm" c="dimmed">Бронирований</Text>
-                    <Text size="sm" fw={500}>{mockUser.stats.asHost.bookings}</Text>
+                    <Text size="sm" c="dimmed">Съёмок проведено</Text>
+                    <Text size="sm" fw={500}>{(userData as any).stats?.asLocationOwner?.bookings || 0}</Text>
                   </Group>
                   <Group justify="space-between">
                     <Text size="sm" c="dimmed">Заработано</Text>
                     <Text size="sm" fw={500}>
-                      {(mockUser.stats.asHost.revenue / 1000000).toFixed(1)}M ₸
+                      {(((userData as any).stats?.asLocationOwner?.revenue || 0) / 1000000).toFixed(1)}M ₸
                     </Text>
                   </Group>
                   <Group justify="space-between">
                     <Text size="sm" c="dimmed">Рейтинг</Text>
                     <Group gap={4}>
                       <IconStar size={14} fill="currentColor" />
-                      <Text size="sm" fw={500}>{mockUser.stats.asHost.rating}</Text>
+                      <Text size="sm" fw={500}>{(userData as any).stats?.asLocationOwner?.rating || 0}</Text>
                     </Group>
                   </Group>
                 </Stack>
               </div>
             )}
 
-            {mockUser.role !== 'host' && (
+            {(userData.role === 'filmmaker' || userData.role === 'both') && (
               <div>
-                <Text size="sm" fw={600} mb="xs">Статистика гостя</Text>
+                <Text size="sm" fw={600} mb="xs">Как фотограф/режиссёр</Text>
                 <Stack gap="xs">
                   <Group justify="space-between">
+                    <Text size="sm" c="dimmed">Съёмок проведено</Text>
+                    <Text size="sm" fw={500}>{(userData as any).stats?.asFilmmaker?.shootings || 0}</Text>
+                  </Group>
+                  <Group justify="space-between">
                     <Text size="sm" c="dimmed">Бронирований</Text>
-                    <Text size="sm" fw={500}>{mockUser.stats.asGuest.bookings}</Text>
+                    <Text size="sm" fw={500}>{(userData as any).stats?.asFilmmaker?.bookings || 0}</Text>
                   </Group>
                   <Group justify="space-between">
                     <Text size="sm" c="dimmed">Потрачено</Text>
                     <Text size="sm" fw={500}>
-                      {mockUser.stats.asGuest.spent.toLocaleString()} ₸
+                      {((userData as any).stats?.asFilmmaker?.spent || 0).toLocaleString()} ₸
                     </Text>
                   </Group>
                   <Group justify="space-between">
                     <Text size="sm" c="dimmed">Отзывов оставлено</Text>
-                    <Text size="sm" fw={500}>{mockUser.stats.asGuest.reviews}</Text>
+                    <Text size="sm" fw={500}>{(userData as any).stats?.asFilmmaker?.reviews || 0}</Text>
                   </Group>
                 </Stack>
               </div>
@@ -186,6 +216,11 @@ export function ProfilePage() {
                 <Tabs.Tab value="payments" leftSection={<IconCreditCard size={16} />}>
                   Платежи
                 </Tabs.Tab>
+                {(userData.role === 'filmmaker' || userData.role === 'both') && (
+                  <Tabs.Tab value="portfolio" leftSection={<IconVideo size={16} />}>
+                    Портфолио
+                  </Tabs.Tab>
+                )}
               </Tabs.List>
 
               <Tabs.Panel value="profile" p="xl">
@@ -229,11 +264,11 @@ export function ProfilePage() {
                     <Select
                       label="Тип аккаунта"
                       data={[
-                        { value: 'guest', label: 'Только гость' },
-                        { value: 'host', label: 'Только хост' },
-                        { value: 'both', label: 'Гость и хост' },
+                        { value: 'filmmaker', label: 'Фотограф/Режиссёр' },
+                        { value: 'location_owner', label: 'Владелец локации' },
+                        { value: 'both', label: 'И то, и другое' },
                       ]}
-                      defaultValue={mockUser.role}
+                      defaultValue={userData.role}
                     />
 
                     <Group justify="flex-end" mt="md">
@@ -296,7 +331,7 @@ export function ProfilePage() {
                             <IconBrandGoogle size={24} />
                             <div>
                               <Text size="sm" fw={500}>Google</Text>
-                              <Text size="xs" c="dimmed">daniyar@gmail.com</Text>
+                              <Text size="xs" c="dimmed">{userData.email || 'daniyar@gmail.com'}</Text>
                             </div>
                           </Group>
                           <Button size="sm" variant="light" color="red">
@@ -407,6 +442,76 @@ export function ProfilePage() {
                   </div>
                 </Stack>
               </Tabs.Panel>
+
+              {(userData.role === 'filmmaker' || userData.role === 'both') && (
+                <Tabs.Panel value="portfolio" p="xl">
+                  <Stack gap="lg">
+                    <div>
+                      <Group justify="space-between" mb="md">
+                        <div>
+                          <Text fw={600} size="lg">Мои работы</Text>
+                          <Text size="sm" c="dimmed">Покажите свои лучшие съёмки</Text>
+                        </div>
+                        <Button leftSection={<IconCamera size={18} />}>
+                          Добавить работу
+                        </Button>
+                      </Group>
+
+                      <Grid>
+                        {(userData as any).portfolio?.map((work: string, index: number) => (
+                          <Grid.Col key={index} span={{ base: 12, xs: 6, sm: 4 }}>
+                            <Card p={0} radius="md" withBorder style={{ overflow: 'hidden' }}>
+                              <Image
+                                src={work}
+                                height={200}
+                                alt={`Работа ${index + 1}`}
+                              />
+                              <Stack gap="xs" p="sm">
+                                <Text size="sm" fw={500}>Проект #{index + 1}</Text>
+                                <Group gap="xs">
+                                  <Badge size="xs" variant="light">Фото</Badge>
+                                  <Badge size="xs" variant="light" color="violet">Портрет</Badge>
+                                </Group>
+                              </Stack>
+                            </Card>
+                          </Grid.Col>
+                        ))}
+                      </Grid>
+                    </div>
+
+                    <Divider />
+
+                    <div>
+                      <Text fw={600} mb="md">Оборудование и навыки</Text>
+                      <Stack gap="sm">
+                        <Group gap="sm">
+                          <Badge size="lg" variant="light">Canon 5D Mark IV</Badge>
+                          <Badge size="lg" variant="light">Adobe Premiere Pro</Badge>
+                          <Badge size="lg" variant="light">DaVinci Resolve</Badge>
+                          <Badge size="lg" variant="light">Drone Pilot</Badge>
+                        </Group>
+                      </Stack>
+                    </div>
+
+                    <Divider />
+
+                    <div>
+                      <Text fw={600} mb="md">Специализация</Text>
+                      <Group gap="sm">
+                        <Badge leftSection={<IconCamera size={14} />} variant="outline">
+                          Портретная съёмка
+                        </Badge>
+                        <Badge leftSection={<IconVideo size={14} />} variant="outline">
+                          Музыкальные клипы
+                        </Badge>
+                        <Badge leftSection={<IconSparkles size={14} />} variant="outline">
+                          Реклама
+                        </Badge>
+                      </Group>
+                    </div>
+                  </Stack>
+                </Tabs.Panel>
+              )}
             </Tabs>
           </Paper>
         </Grid.Col>
